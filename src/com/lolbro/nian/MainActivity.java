@@ -17,6 +17,7 @@ import org.andengine.extension.physics.box2d.FixedStepPhysicsWorld;
 import org.andengine.extension.physics.box2d.PhysicsConnector;
 import org.andengine.extension.physics.box2d.PhysicsFactory;
 import org.andengine.extension.physics.box2d.PhysicsWorld;
+import org.andengine.extension.physics.box2d.util.constants.PhysicsConstants;
 import org.andengine.input.touch.TouchEvent;
 import org.andengine.opengl.font.Font;
 import org.andengine.opengl.font.FontFactory;
@@ -89,7 +90,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	@Override
 	public EngineOptions onCreateEngineOptions() {		
 //		this.mCamera = new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
-		this.mCamera = new SmoothCamera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT, 20, 20, 10);
+		this.mCamera = new SmoothCamera(-CAMERA_WIDTH/2, -CAMERA_HEIGHT/2, CAMERA_WIDTH, CAMERA_HEIGHT, 10 * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, 10 * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, 10);
 		
 		//new RatioResolutionPolicy(CAMERA_WIDTH, CAMERA_HEIGHT)
 		return new EngineOptions(true, ScreenOrientation.PORTRAIT_FIXED, new FillResolutionPolicy(), this.mCamera);
@@ -130,11 +131,11 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	}
 	
 	private void initPlayer() {
-		mPlayerSprite = new Sprite(20, 20, PLAYER_SIZE, PLAYER_SIZE, this.mPlayerRegion, this.getVertexBufferObjectManager()){
+		mPlayerSprite = new Sprite(-PLAYER_SIZE/2, CAMERA_HEIGHT/2 - PLAYER_SIZE*2, PLAYER_SIZE, PLAYER_SIZE, this.mPlayerRegion, this.getVertexBufferObjectManager()){
 			@Override
 			public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
-//				mPlayerBody.setLinearVelocity(0, -10);
-				mCamera.setCenter(-100, 0);
+				mPlayerBody.setLinearVelocity(0, -10);
+				mCamera.setCenter(0, -2000);
 				return super.onAreaTouched(pSceneTouchEvent, pTouchAreaLocalX, pTouchAreaLocalY);
 			}
 		};
@@ -143,8 +144,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 
 		mPlayerBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, mPlayerSprite, BodyType.DynamicBody, playerFixtureDef);
 //		mPlayerBody.setLinearDamping(10);
-
-		mPlayerBody.setAngularDamping(10);
+//		mPlayerBody.setAngularDamping(10);
 		
 		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mPlayerSprite, mPlayerBody, true, true));
 		
