@@ -33,8 +33,11 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
+import com.lolbro.nian.customs.SwipeScene;
+import com.lolbro.nian.customs.SwipeScene.SwipeListener;
 
-public class MainActivity extends SimpleBaseGameActivity {
+
+public class MainActivity extends SimpleBaseGameActivity implements SwipeListener {
 	
 	// ===========================================================
 	// Constants
@@ -45,11 +48,20 @@ public class MainActivity extends SimpleBaseGameActivity {
 	
 	private static final int STEPS_PER_SECOND = 30;
 	
+
 	private static final int PLAYER_SIZE = 64;
+
+	public static final int JUMP_UP = 1;
+	public static final int JUMP_DOWN = 2;
+	public static final int JUMP_LEFT = 3;
+	public static final int JUMP_RIGHT = 4;
+
 	
 	// ===========================================================
 	// Fields
 	// ===========================================================
+	
+
 	
 	private Camera mCamera;
 	
@@ -90,11 +102,13 @@ public class MainActivity extends SimpleBaseGameActivity {
 		this.mCharactersTexture = new BitmapTextureAtlas(this.getTextureManager(), 32, 32, TextureOptions.BILINEAR);
 		this.mPlayerRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "player.png", 0, 0);
 		this.mCharactersTexture.load();
+		
 	}
 	
 	@Override
 	protected Scene onCreateScene() {
-		this.mScene = new Scene();
+
+		this.mScene = new SwipeScene();
 		this.mScene.setBackground(new Background(255, 255, 255));
 		
 		this.mPhysicsWorld = new FixedStepPhysicsWorld(STEPS_PER_SECOND, new Vector2(0, 0), false, 10, 10);
@@ -146,6 +160,43 @@ public class MainActivity extends SimpleBaseGameActivity {
 		                         text.setText("FPS: " + fpsCounter.getFPS());
 		        }
 		}));
+	}
+	
+	private void jump(int direction){
+		switch(direction){
+		case JUMP_UP:
+			mPlayerBody.setLinearVelocity(mPlayerBody.getLinearVelocity().x, -25);
+			break;
+		case JUMP_DOWN:
+			mPlayerBody.setLinearVelocity(mPlayerBody.getLinearVelocity().x, 20);
+			break;
+		case JUMP_LEFT:
+			mPlayerBody.setLinearVelocity(-3.5f, mPlayerBody.getLinearVelocity().y);
+			break;
+		case JUMP_RIGHT:
+			mPlayerBody.setLinearVelocity(3.5f, mPlayerBody.getLinearVelocity().y);
+			break;
+		}
+	}
+	
+	@Override
+	public void onSwipe(int direction) {
+		
+		switch(direction){
+		case SwipeListener.DIRECTION_UP:			
+			jump(JUMP_UP);
+			break;
+		case SwipeListener.DIRECTION_LEFT:
+			jump(JUMP_LEFT);
+			break;
+		case SwipeListener.DIRECTION_RIGHT:
+			jump(JUMP_RIGHT);
+			break;
+		case SwipeListener.DIRECTION_DOWN:
+			jump(JUMP_DOWN);
+			break;
+		}
+		
 	}
 	
 	// ===========================================================
