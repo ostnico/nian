@@ -8,7 +8,7 @@ import org.andengine.engine.options.EngineOptions;
 import org.andengine.engine.options.ScreenOrientation;
 import org.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
 import org.andengine.entity.scene.Scene;
-import org.andengine.entity.scene.background.Background;
+import org.andengine.entity.scene.background.RepeatingSpriteBackground;
 import org.andengine.entity.sprite.Sprite;
 import org.andengine.entity.text.Text;
 import org.andengine.entity.text.TextOptions;
@@ -23,6 +23,7 @@ import org.andengine.opengl.font.FontFactory;
 import org.andengine.opengl.texture.TextureOptions;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlas;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasTextureRegionFactory;
+import org.andengine.opengl.texture.atlas.bitmap.source.AssetBitmapTextureAtlasSource;
 import org.andengine.opengl.texture.region.ITextureRegion;
 import org.andengine.ui.activity.SimpleBaseGameActivity;
 import org.andengine.util.HorizontalAlign;
@@ -61,8 +62,6 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	// Fields
 	// ===========================================================
 	
-
-	
 	private SmoothCamera mCamera;
 	
 	private Scene mScene;
@@ -73,7 +72,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private ITextureRegion mPlayerRegion;
 	
 	private Body mPlayerBody;
-	private Sprite mPlayer;
+	private Sprite mPlayerSprite;
 	
 	// ===========================================================
 	// Constructors
@@ -110,13 +109,13 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	protected Scene onCreateScene() {
 
 		this.mScene = new SwipeScene();
-		this.mScene.setBackground(new Background(255, 255, 255));
 		
 		this.mPhysicsWorld = new FixedStepPhysicsWorld(STEPS_PER_SECOND, new Vector2(0, 0), false, 10, 10);
 		
 		this.mScene.registerUpdateHandler(this.mPhysicsWorld);
 		
 		showFPS();
+		initBackground();
 		initPlayer();
 		
 		return this.mScene;
@@ -126,8 +125,12 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	// Methods
 	// ===========================================================
 	
+	private void initBackground() {
+		this.mScene.setBackground(new RepeatingSpriteBackground((float)CAMERA_WIDTH, (float)CAMERA_HEIGHT, getTextureManager(), AssetBitmapTextureAtlasSource.create(getAssets(), "gfx/floor_1.png"), this.getVertexBufferObjectManager()));
+	}
+	
 	private void initPlayer() {
-		mPlayer = new Sprite(20, 20, PLAYER_SIZE, PLAYER_SIZE, this.mPlayerRegion, this.getVertexBufferObjectManager()){
+		mPlayerSprite = new Sprite(20, 20, PLAYER_SIZE, PLAYER_SIZE, this.mPlayerRegion, this.getVertexBufferObjectManager()){
 			@Override
 			public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
 //				mPlayerBody.setLinearVelocity(0, -10);
@@ -137,14 +140,16 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		};
 		
 		final FixtureDef playerFixtureDef = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
-		mPlayerBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, mPlayer, BodyType.DynamicBody, playerFixtureDef);
+
+		mPlayerBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, mPlayerSprite, BodyType.DynamicBody, playerFixtureDef);
 //		mPlayerBody.setLinearDamping(10);
+
 		mPlayerBody.setAngularDamping(10);
 		
-		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mPlayer, mPlayerBody, true, true));
+		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mPlayerSprite, mPlayerBody, true, true));
 		
-		this.mScene.attachChild(mPlayer);
-		this.mScene.registerTouchArea(mPlayer);
+		this.mScene.attachChild(mPlayerSprite);
+		this.mScene.registerTouchArea(mPlayerSprite);
 	}
 	
 	private void showFPS() {
