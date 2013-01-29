@@ -1,6 +1,6 @@
 package com.lolbro.nian;
 
-import org.andengine.engine.camera.Camera;
+import org.andengine.engine.camera.SmoothCamera;
 import org.andengine.engine.camera.hud.HUD;
 import org.andengine.engine.handler.timer.ITimerCallback;
 import org.andengine.engine.handler.timer.TimerHandler;
@@ -46,7 +46,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private static final int CAMERA_WIDTH = 480;
 	private static final int CAMERA_HEIGHT = 720;
 	
-	private static final int STEPS_PER_SECOND = 30;
+	private static final int STEPS_PER_SECOND = 60;
 	
 
 	private static final int PLAYER_SIZE = 64;
@@ -63,7 +63,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 
 	
-	private Camera mCamera;
+	private SmoothCamera mCamera;
 	
 	private Scene mScene;
 	
@@ -89,7 +89,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	@Override
 	public EngineOptions onCreateEngineOptions() {		
-		this.mCamera = new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
+//		this.mCamera = new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
+		this.mCamera = new SmoothCamera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT, 20, 20, 10);
 		
 		//new RatioResolutionPolicy(CAMERA_WIDTH, CAMERA_HEIGHT)
 		return new EngineOptions(true, ScreenOrientation.PORTRAIT_FIXED, new FillResolutionPolicy(), this.mCamera);
@@ -129,14 +130,15 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		mPlayer = new Sprite(20, 20, PLAYER_SIZE, PLAYER_SIZE, this.mPlayerRegion, this.getVertexBufferObjectManager()){
 			@Override
 			public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
-				mPlayerBody.setLinearVelocity(10, 10);
+//				mPlayerBody.setLinearVelocity(0, -10);
+				mCamera.setCenter(-100, 0);
 				return super.onAreaTouched(pSceneTouchEvent, pTouchAreaLocalX, pTouchAreaLocalY);
 			}
 		};
 		
 		final FixtureDef playerFixtureDef = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
 		mPlayerBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, mPlayer, BodyType.DynamicBody, playerFixtureDef);
-		mPlayerBody.setLinearDamping(10);
+//		mPlayerBody.setLinearDamping(10);
 		mPlayerBody.setAngularDamping(10);
 		
 		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mPlayer, mPlayerBody, true, true));
