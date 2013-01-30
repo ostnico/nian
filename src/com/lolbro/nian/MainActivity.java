@@ -1,22 +1,36 @@
 package com.lolbro.nian;
 
 import org.andengine.engine.camera.SmoothCamera;
+import org.andengine.engine.camera.hud.HUD;
 import org.andengine.engine.handler.IUpdateHandler;
+import org.andengine.engine.handler.timer.ITimerCallback;
+import org.andengine.engine.handler.timer.TimerHandler;
 import org.andengine.engine.options.EngineOptions;
 import org.andengine.engine.options.ScreenOrientation;
 import org.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
 import org.andengine.entity.scene.Scene;
+import org.andengine.entity.scene.menu.MenuScene;
+import org.andengine.entity.scene.menu.MenuScene.IOnMenuItemClickListener;
+import org.andengine.entity.scene.menu.item.IMenuItem;
 import org.andengine.entity.sprite.Sprite;
+import org.andengine.entity.text.Text;
+import org.andengine.entity.text.TextOptions;
+import org.andengine.entity.util.FPSCounter;
 import org.andengine.extension.physics.box2d.FixedStepPhysicsWorld;
 import org.andengine.extension.physics.box2d.PhysicsConnector;
 import org.andengine.extension.physics.box2d.PhysicsWorld;
 import org.andengine.extension.physics.box2d.util.constants.PhysicsConstants;
+import org.andengine.opengl.font.Font;
+import org.andengine.opengl.font.FontFactory;
 import org.andengine.opengl.texture.TextureOptions;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlas;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasTextureRegionFactory;
 import org.andengine.opengl.texture.region.ITextureRegion;
 import org.andengine.opengl.vbo.VertexBufferObjectManager;
 import org.andengine.ui.activity.SimpleBaseGameActivity;
+import org.andengine.util.HorizontalAlign;
+
+import android.graphics.Typeface;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -32,7 +46,7 @@ import com.lolbro.nian.models.MObject;
 
 
 
-public class MainActivity extends SimpleBaseGameActivity implements SwipeListener, IUpdateHandler, ContactListener {
+public class MainActivity extends SimpleBaseGameActivity implements SwipeListener, IUpdateHandler, ContactListener, IOnMenuItemClickListener {
 	
 	// ===========================================================
 	// Constants
@@ -44,8 +58,16 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private static final int STEPS_PER_SECOND = 60;
 	private static final int MAX_STEPS_PER_UPDATE = 1;
 	
+	private static final int MENU_RETRY = 1;
+	
 	private static final int PLAYER_SIZE = 64;
 
+	private static final float LANE_STEP_SIZE = 140;
+	
+	private static final float PLAYER_ROLL_SPEED = 15f;
+	
+	private static final String PLAYER_USERDATA = "body_player";
+	
 	public static final int JUMP_UP = SwipeListener.DIRECTION_UP;
 	public static final int JUMP_DOWN = SwipeListener.DIRECTION_DOWN;
 	public static final int JUMP_LEFT = SwipeListener.DIRECTION_LEFT;
@@ -58,7 +80,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 //	public static final float LANE_RIGHT = PLAYER_HOME_POSITION.x + LANE_STEP_SIZE;
 	
 	public static final Vector2 PLAYER_SPRITE_SPAWN = new Vector2(PLAYER_HOME_POSITION.x - PLAYER_SIZE/2, PLAYER_HOME_POSITION.y -PLAYER_SIZE/2);
-
+	
 	
 	// ===========================================================
 	// Fields
@@ -73,6 +95,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private BitmapTextureAtlas mCharactersTexture;
 	private ITextureRegion mPlayerRegion;
 	private ITextureRegion mObstacleRegion;
+	
+	private BitmapTextureAtlas mMenuTexture;
+	private ITextureRegion mMenuRetryRegion;
 
 	private MObject mPlayer;
 	private MObject mEnemy;
@@ -85,7 +110,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private boolean moveUp = false;
 	private boolean moveDown = false;
 	
-	private short rollCounter = 0;
+	private float rollToPosition = 0;
 	
 	// ===========================================================
 	// Constructors
@@ -120,16 +145,19 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mObstacleRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "obstacle.png", 32, 0);
 		this.mCharactersTexture.load();
 		
+		this.mMenuTexture = new BitmapTextureAtlas(this.getTextureManager(), 256, 64, TextureOptions.BILINEAR);
+		this.mMenuRetryRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mMenuTexture, this, "menu_retry.png", 0, 0);
+		this.mMenuTexture.load();
 	}
 	
 	@Override
 	protected Scene onCreateScene() {
 		
-		this.mScene = new SwipeScene();
-		
-		this.mScene.registerUpdateHandler(this);
+		createScene();
 		
 		this.mPhysicsWorld = new FixedStepPhysicsWorld(STEPS_PER_SECOND, MAX_STEPS_PER_UPDATE, new Vector2(0, 0), false, 10, 10);
+		
+		this.mPhysicsWorld.setContactListener(this);
 		
 		this.mScene.registerUpdateHandler(this.mPhysicsWorld);
 		
@@ -156,6 +184,12 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		jump(direction);	
 	}
 	
+	@Override
+	public boolean onMenuItemClicked(MenuScene pMenuScene, IMenuItem pMenuItem, float pMenuItemLocalX, float pMenuItemLocalY) {
+		// TODO Auto 
+		return true;
+	}
+	
 	// ===========================================================
 	// On update
 	// ===========================================================
@@ -164,47 +198,40 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	public void onUpdate(float pSecondsElapsed) {
 		
 		Body playerBody = mPlayer.getBody();
+
+		float x = mPlayer.getBodyPositionX(true);
+		float y = mPlayer.getBodyPositionY(true);
+		float rollMovement = PLAYER_ROLL_SPEED * pSecondsElapsed;
 		
 		if (moveUp == true) {
-			if (rollCounter < 7) {
-				rollCounter++;
-				playerBody.setLinearVelocity(0, -40);
+			if (y > rollToPosition) {
+				playerBody.setTransform(x, y - rollMovement, 0);
 			} else {
 				moveUp = false;
-				rollCounter = 0;
-				playerBody.setLinearVelocity(0, 0);
+				playerBody.setTransform(x, rollToPosition, 0);
 			}
 		} else if (moveDown == true) {
-			if (rollCounter < 7) {
-				rollCounter++;
-				playerBody.setLinearVelocity(0, 40);
+			if (y < rollToPosition) {
+				playerBody.setTransform(x, y + rollMovement, 0);
 			} else {
 				moveDown = false;
-				rollCounter = 0;
-				playerBody.setLinearVelocity(0, 0);
+				playerBody.setTransform(x, rollToPosition, 0);
 			}
 		} else if (moveLeft == true) {
-			if (rollCounter < 7) {
-				rollCounter++;
-				playerBody.setLinearVelocity(-40, 0);
+			if (x > rollToPosition) {
+				playerBody.setTransform(x - rollMovement, y, 0);
 			} else {
 				moveLeft = false;
-				rollCounter = 0;
-				playerBody.setLinearVelocity(0, 0);
+				playerBody.setTransform(rollToPosition, y, 0);
 			}
 		} else if (moveRight == true) {
-			if (rollCounter < 7) {
-				rollCounter++;
-				playerBody.setLinearVelocity(40, 0);
+			if (x < rollToPosition) {
+				playerBody.setTransform(x + rollMovement, y, 0);
 			} else {
 				moveRight = false;
-				rollCounter = 0;
-				playerBody.setLinearVelocity(0, 0);
+				playerBody.setTransform(rollToPosition, y, 0);
 			}
 		}
-		
-		
-				
 	}
 	
 	// ===========================================================
@@ -213,25 +240,26 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	@Override
 	public void beginContact(Contact contact) {
-		// TODO Auto-generated method stub
+		Object userDataA = contact.getFixtureA().getBody().getUserData();
+		Object userDataB = contact.getFixtureB().getBody().getUserData();
 		
+		if(userDataA.equals(PLAYER_USERDATA) || userDataB.equals(PLAYER_USERDATA)){
+			
+		}
 	}
 
 	@Override
 	public void endContact(Contact contact) {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void preSolve(Contact contact, Manifold oldManifold) {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void postSolve(Contact contact, ContactImpulse impulse) {
-		// TODO Auto-generated method stub
 		
 	}
 	
@@ -273,27 +301,43 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				this.getVertexBufferObjectManager(),
 				mPhysicsWorld);
 		
+		this.mPlayer.getBody().setUserData(PLAYER_USERDATA);
+		
 		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mPlayer.getSprite(), mPlayer.getBody(), true, false));
 		this.mScene.attachChild(mPlayer.getSprite());
 	}
 	
+	private void createScene() {
+		this.mScene = new SwipeScene();
+		
+//		final SpriteMenuItem retryMenuItem = new SpriteMenuItem(MENU_RETRY, this.mMenuRetryRegion, this.getVertexBufferObjectManager());
+//		retryMenuItem.setBlendFunction(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+//		this.mScene.addMenuItem(retryMenuItem);
+//		
+//		this.mScene.buildAnimations();
+		
+		this.mScene.registerUpdateHandler(this);
+		
+//		this.mScene.setOnMenuItemClickListener(this);
+	}
+	
 	/* Methods for debugging */
-//	private void showFPS() {
-//		final FPSCounter fpsCounter = new FPSCounter();
-//		this.mEngine.registerUpdateHandler(fpsCounter);
-//		HUD hud=new HUD();
-//		Font font = FontFactory.create(this.getFontManager(), this.getTextureManager(), 256, 256, Typeface.create(Typeface.DEFAULT, Typeface.BOLD), 32);
-//		font.load();
-//		final Text text = new Text(10, 10, font, "FPS: ", 20, new TextOptions(HorizontalAlign.CENTER), this.getVertexBufferObjectManager());
-//		hud.attachChild(text);
-//		mCamera.setHUD(hud);
-//		mScene.registerUpdateHandler(new TimerHandler(1 / 20.0f, true, new ITimerCallback() {
-//		                @Override
-//		                public void onTimePassed(final TimerHandler pTimerHandler) {
-//		                         text.setText("FPS: " + fpsCounter.getFPS());
-//		        }
-//		}));
-//	}
+	private void showFPS() {
+		final FPSCounter fpsCounter = new FPSCounter();
+		this.mEngine.registerUpdateHandler(fpsCounter);
+		HUD hud=new HUD();
+		Font font = FontFactory.create(this.getFontManager(), this.getTextureManager(), 256, 256, Typeface.create(Typeface.DEFAULT, Typeface.BOLD), 32);
+		font.load();
+		final Text text = new Text(10, 10, font, "FPS: ", 20, new TextOptions(HorizontalAlign.CENTER), this.getVertexBufferObjectManager());
+		hud.attachChild(text);
+		mCamera.setHUD(hud);
+		mScene.registerUpdateHandler(new TimerHandler(1 / 20.0f, true, new ITimerCallback() {
+		                @Override
+		                public void onTimePassed(final TimerHandler pTimerHandler) {
+		                         text.setText("FPS: " + fpsCounter.getFPS());
+		        }
+		}));
+	}
 	
 	/* Methods for moving */
 	
@@ -307,18 +351,26 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		switch(direction){
 		case JUMP_UP:
 			if ((int)playerPosition.y >= PLAYER_HOME_POSITION.y) {
+				rollToPosition = (int)playerPosition.y - LANE_STEP_SIZE;
+				rollToPosition /= PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
 				moveUp = true;
 			} break;
 		case JUMP_DOWN:
 			if ((int)playerPosition.y <= PLAYER_HOME_POSITION.y) {
+				rollToPosition = (int)playerPosition.y + LANE_STEP_SIZE;
+				rollToPosition /= PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
 				moveDown = true;
 			} break;
 		case JUMP_LEFT:
 			if ((int)playerPosition.x >= PLAYER_HOME_POSITION.x) {
+				rollToPosition = (int)playerPosition.x - LANE_STEP_SIZE;
+				rollToPosition /= PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
 				moveLeft = true;
 			} break;
 		case JUMP_RIGHT:
 			if ((int)playerPosition.x <= PLAYER_HOME_POSITION.x) {
+				rollToPosition = (int)playerPosition.x + LANE_STEP_SIZE;
+				rollToPosition /= PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
 				moveRight = true;
 			} break;
 		}
