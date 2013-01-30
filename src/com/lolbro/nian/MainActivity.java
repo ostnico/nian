@@ -1,36 +1,25 @@
 package com.lolbro.nian;
 
 import org.andengine.engine.camera.SmoothCamera;
-import org.andengine.engine.camera.hud.HUD;
 import org.andengine.engine.handler.IUpdateHandler;
-import org.andengine.engine.handler.timer.ITimerCallback;
-import org.andengine.engine.handler.timer.TimerHandler;
 import org.andengine.engine.options.EngineOptions;
 import org.andengine.engine.options.ScreenOrientation;
 import org.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
 import org.andengine.entity.scene.Scene;
 import org.andengine.entity.scene.background.RepeatingSpriteBackground;
 import org.andengine.entity.sprite.Sprite;
-import org.andengine.entity.text.Text;
-import org.andengine.entity.text.TextOptions;
-import org.andengine.entity.util.FPSCounter;
 import org.andengine.extension.physics.box2d.FixedStepPhysicsWorld;
 import org.andengine.extension.physics.box2d.PhysicsConnector;
 import org.andengine.extension.physics.box2d.PhysicsFactory;
 import org.andengine.extension.physics.box2d.PhysicsWorld;
 import org.andengine.extension.physics.box2d.util.constants.PhysicsConstants;
 import org.andengine.input.touch.TouchEvent;
-import org.andengine.opengl.font.Font;
-import org.andengine.opengl.font.FontFactory;
 import org.andengine.opengl.texture.TextureOptions;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlas;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasTextureRegionFactory;
 import org.andengine.opengl.texture.atlas.bitmap.source.AssetBitmapTextureAtlasSource;
 import org.andengine.opengl.texture.region.ITextureRegion;
 import org.andengine.ui.activity.SimpleBaseGameActivity;
-import org.andengine.util.HorizontalAlign;
-
-import android.graphics.Typeface;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -50,8 +39,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private static final int CAMERA_HEIGHT = 720;
 	
 	private static final int STEPS_PER_SECOND = 60;
+	private static final int MAX_STEPS_PER_UPDATE = 1;
 	
-
 	private static final int PLAYER_SIZE = 64;
 
 	public static final int JUMP_UP = 1;
@@ -75,6 +64,13 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private Body mPlayerBody;
 	private Sprite mPlayerSprite;
+	private Body mObstacleBody;
+	private Sprite mObstacleSprite;
+	
+	private boolean moveLeft = false;
+	private boolean swipeRight = false;
+	
+	private short rollCounter = 0;
 	
 	// ===========================================================
 	// Constructors
@@ -91,7 +87,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	@Override
 	public EngineOptions onCreateEngineOptions() {		
 //		this.mCamera = new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
-		this.mCamera = new SmoothCamera(-CAMERA_WIDTH/2, -CAMERA_HEIGHT/2, CAMERA_WIDTH, CAMERA_HEIGHT, 10 * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, 10 * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, 10);
+		this.mCamera = new SmoothCamera(0, -CAMERA_HEIGHT, CAMERA_WIDTH, CAMERA_HEIGHT, 10 * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, 10 * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, 10);
 		
 		//new RatioResolutionPolicy(CAMERA_WIDTH, CAMERA_HEIGHT)
 		return new EngineOptions(true, ScreenOrientation.PORTRAIT_FIXED, new FillResolutionPolicy(), this.mCamera);
@@ -109,16 +105,19 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	@Override
 	protected Scene onCreateScene() {
-
+		
 		this.mScene = new SwipeScene();
 		
-		this.mPhysicsWorld = new FixedStepPhysicsWorld(STEPS_PER_SECOND, new Vector2(0, 0), false, 10, 10);
+		this.mScene.registerUpdateHandler(this);
+		
+		this.mPhysicsWorld = new FixedStepPhysicsWorld(STEPS_PER_SECOND, MAX_STEPS_PER_UPDATE, new Vector2(0, 0), false, 10, 10);
 		
 		this.mScene.registerUpdateHandler(this.mPhysicsWorld);
 		
-		showFPS();
 		initBackground();
 		initPlayer();
+		initObstacle();
+//		showFPS();
 		
 		return this.mScene;
 	}
@@ -128,29 +127,48 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	// ===========================================================
 	
 	@Override
-	public void onUpdate(float fffffff) {
+	public void onUpdate(float pSecondsElapsed) {
+		if (moveLeft == true) {
+			if (rollCounter < 20) {
+				rollCounter++;
+				mPlayerBody.setLinearVelocity(-2, 0);
+			} else {
+				moveLeft = false;
+				rollCounter = 0;
+			}
+		}
 				
 	}
-	
-	public void reset() {
-		
-	}
-	
 	
 	// ===========================================================
 	// Methods
 	// ===========================================================
 	
+	
 	private void initBackground() {
 		this.mScene.setBackground(new RepeatingSpriteBackground((float)CAMERA_WIDTH, (float)CAMERA_HEIGHT, getTextureManager(), AssetBitmapTextureAtlasSource.create(getAssets(), "gfx/floor_1.png"), this.getVertexBufferObjectManager()));
 	}
 	
+	private void initObstacle() {
+		mObstacleSprite = new Sprite(CAMERA_WIDTH/2-PLAYER_SIZE/2, -CAMERA_HEIGHT - PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE, this.mPlayerRegion, this.getVertexBufferObjectManager());
+		
+		final FixtureDef obstacleFixtureDef = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
+		
+		mObstacleBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, mObstacleSprite, BodyType.DynamicBody, obstacleFixtureDef);
+		mObstacleBody.setFixedRotation(true);
+		
+		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mObstacleSprite, mObstacleBody, true, true));
+		
+		this.mScene.attachChild(mObstacleSprite);
+	}
+	
 	private void initPlayer() {
-		mPlayerSprite = new Sprite(-PLAYER_SIZE/2, CAMERA_HEIGHT/2 - PLAYER_SIZE*2, PLAYER_SIZE, PLAYER_SIZE, this.mPlayerRegion, this.getVertexBufferObjectManager()){
+		mPlayerSprite = new Sprite(CAMERA_WIDTH/2-PLAYER_SIZE/2, -PLAYER_SIZE*2, PLAYER_SIZE, PLAYER_SIZE, this.mPlayerRegion, this.getVertexBufferObjectManager()){
 			@Override
 			public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
-				mPlayerBody.setLinearVelocity(0, -10);
-				mCamera.setCenter(0, -2000);
+				mObstacleBody.setLinearVelocity(0, 5);
+//				mPlayerBody.setLinearVelocity(0, -10);
+//				mCamera.setCenter(0, -2000);
 				return super.onAreaTouched(pSceneTouchEvent, pTouchAreaLocalX, pTouchAreaLocalY);
 			}
 		};
@@ -158,6 +176,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		final FixtureDef playerFixtureDef = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
 
 		mPlayerBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, mPlayerSprite, BodyType.DynamicBody, playerFixtureDef);
+		mPlayerBody.setFixedRotation(true);
 //		mPlayerBody.setLinearDamping(10);
 //		mPlayerBody.setAngularDamping(10);
 		
@@ -167,31 +186,37 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mScene.registerTouchArea(mPlayerSprite);
 	}
 	
-	private void showFPS() {
-		final FPSCounter fpsCounter = new FPSCounter();
-		this.mEngine.registerUpdateHandler(fpsCounter);
-		HUD hud=new HUD();
-		Font font = FontFactory.create(this.getFontManager(), this.getTextureManager(), 256, 256, Typeface.create(Typeface.DEFAULT, Typeface.BOLD), 32);
-		font.load();
-		final Text text = new Text(10, 10, font, "FPS: ", 20, new TextOptions(HorizontalAlign.CENTER), this.getVertexBufferObjectManager());
-		hud.attachChild(text);
-		mCamera.setHUD(hud);
-		mScene.registerUpdateHandler(new TimerHandler(1 / 20.0f, true, new ITimerCallback() {
-		                @Override
-		                public void onTimePassed(final TimerHandler pTimerHandler) {
-		                         text.setText("FPS: " + fpsCounter.getFPS());
-		        }
-		}));
-	}
+	/* Methods for debugging */
+//	private void showFPS() {
+//		final FPSCounter fpsCounter = new FPSCounter();
+//		this.mEngine.registerUpdateHandler(fpsCounter);
+//		HUD hud=new HUD();
+//		Font font = FontFactory.create(this.getFontManager(), this.getTextureManager(), 256, 256, Typeface.create(Typeface.DEFAULT, Typeface.BOLD), 32);
+//		font.load();
+//		final Text text = new Text(10, 10, font, "FPS: ", 20, new TextOptions(HorizontalAlign.CENTER), this.getVertexBufferObjectManager());
+//		hud.attachChild(text);
+//		mCamera.setHUD(hud);
+//		mScene.registerUpdateHandler(new TimerHandler(1 / 20.0f, true, new ITimerCallback() {
+//		                @Override
+//		                public void onTimePassed(final TimerHandler pTimerHandler) {
+//		                         text.setText("FPS: " + fpsCounter.getFPS());
+//		        }
+//		}));
+//	}
 	
+	/* Methods for onUpdate */
 	@Override
 	public synchronized void onResumeGame() {
 		super.onResumeGame();
 		mScene.registerForGestureDetection(this, this);
 	}
 	
+	@Override
+	public void reset() {
+		
+	}
 	
-	
+	/* Methods for moving */
 	private void jump(int direction){
 		switch(direction){
 		case JUMP_UP:
@@ -201,8 +226,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			mPlayerBody.setLinearVelocity(mPlayerBody.getLinearVelocity().x, 20);
 			break;
 		case JUMP_LEFT:
-			mPlayerBody.setLinearVelocity(-3.5f, mPlayerBody.getLinearVelocity().y);
-			break;
+			if (moveLeft == false && mPlayerBody.getPosition().x*32 >= CAMERA_WIDTH/2) {
+				moveLeft = true;
+			} break;
 		case JUMP_RIGHT:
 			mPlayerBody.setLinearVelocity(3.5f, mPlayerBody.getLinearVelocity().y);
 			break;
