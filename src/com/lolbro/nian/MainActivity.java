@@ -6,7 +6,7 @@ import org.andengine.engine.options.EngineOptions;
 import org.andengine.engine.options.ScreenOrientation;
 import org.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
 import org.andengine.entity.scene.Scene;
-import org.andengine.entity.scene.background.RepeatingSpriteBackground;
+import org.andengine.entity.sprite.Sprite;
 import org.andengine.extension.physics.box2d.FixedStepPhysicsWorld;
 import org.andengine.extension.physics.box2d.PhysicsConnector;
 import org.andengine.extension.physics.box2d.PhysicsWorld;
@@ -14,8 +14,8 @@ import org.andengine.extension.physics.box2d.util.constants.PhysicsConstants;
 import org.andengine.opengl.texture.TextureOptions;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlas;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasTextureRegionFactory;
-import org.andengine.opengl.texture.atlas.bitmap.source.AssetBitmapTextureAtlasSource;
 import org.andengine.opengl.texture.region.ITextureRegion;
+import org.andengine.opengl.vbo.VertexBufferObjectManager;
 import org.andengine.ui.activity.SimpleBaseGameActivity;
 
 import com.badlogic.gdx.math.Vector2;
@@ -24,9 +24,12 @@ import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.ContactImpulse;
 import com.badlogic.gdx.physics.box2d.ContactListener;
 import com.badlogic.gdx.physics.box2d.Manifold;
+import com.lolbro.nian.customs.AutoVerticalParallaxBackground;
 import com.lolbro.nian.customs.SwipeScene;
 import com.lolbro.nian.customs.SwipeScene.SwipeListener;
+import com.lolbro.nian.customs.VerticalParallaxBackground.VerticalParallaxEntity;
 import com.lolbro.nian.models.Obstacle;
+
 
 
 public class MainActivity extends SimpleBaseGameActivity implements SwipeListener, IUpdateHandler, ContactListener {
@@ -65,9 +68,13 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private BitmapTextureAtlas mCharactersTexture;
 	private ITextureRegion mPlayerRegion;
+	private ITextureRegion mObstacleRegion;
 
 	private Obstacle mPlayer;
 	private Obstacle mEnemy;
+	
+	private BitmapTextureAtlas mAutoParallaxBackgroundTexture;
+	private ITextureRegion mParallaxLayerBack;
 	
 	private boolean moveLeft = false;
 	private boolean moveRight = false;
@@ -100,8 +107,13 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	protected void onCreateResources() {
 		BitmapTextureAtlasTextureRegionFactory.setAssetBasePath("gfx/");
 		
-		this.mCharactersTexture = new BitmapTextureAtlas(this.getTextureManager(), 32, 32, TextureOptions.BILINEAR);
+		this.mAutoParallaxBackgroundTexture = new BitmapTextureAtlas(this.getTextureManager(), 512, 64);
+		this.mParallaxLayerBack = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mAutoParallaxBackgroundTexture, this, "floor_2.png", 0, 0);
+		this.mAutoParallaxBackgroundTexture.load();
+		
+		this.mCharactersTexture = new BitmapTextureAtlas(this.getTextureManager(), 64, 32, TextureOptions.BILINEAR);
 		this.mPlayerRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "player.png", 0, 0);
+		this.mObstacleRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "obstacle.png", 32, 0);
 		this.mCharactersTexture.load();
 		
 	}
@@ -186,6 +198,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				playerBody.setLinearVelocity(0, 0);
 			}
 		}
+		
+		
 				
 	}
 	
@@ -222,16 +236,20 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	// ===========================================================
 	
 	private void initBackground() {
-		this.mScene.setBackground(new RepeatingSpriteBackground((float)CAMERA_WIDTH, (float)CAMERA_HEIGHT, getTextureManager(), AssetBitmapTextureAtlasSource.create(getAssets(), "gfx/floor_1.png"), this.getVertexBufferObjectManager()));
+		final VertexBufferObjectManager vertexBufferObjectManager = this.getVertexBufferObjectManager();
+		final AutoVerticalParallaxBackground autoParallaxBackground = new AutoVerticalParallaxBackground(0, 0, 0, 30);
+		autoParallaxBackground.attachVerticalParallaxEntity(new VerticalParallaxEntity(-5.0f, new Sprite(0, 720, this.mParallaxLayerBack, vertexBufferObjectManager)));
+		this.mScene.setBackground(autoParallaxBackground);
 	}
 	
 	private void initObstacle() {
+
 		this.mEnemy = new Obstacle(
 				CAMERA_WIDTH/2-PLAYER_SIZE/2,
 				-CAMERA_HEIGHT - PLAYER_SIZE,
 				PLAYER_SIZE,
 				PLAYER_SIZE,
-				this.mPlayerRegion,
+				this.mObstacleRegion,
 				this.getVertexBufferObjectManager(), 
 				mPhysicsWorld,
 				Obstacle.SHAPE_BOX);
@@ -241,6 +259,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	}
 	
 	private void initPlayer() {
+
 		this.mPlayer = new Obstacle(
 				PLAYER_SPRITE_SPAWN.x,
 				PLAYER_SPRITE_SPAWN.y,
