@@ -53,6 +53,10 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	public static final Vector2 PLAYER_HOME_POSITION = new Vector2(CAMERA_WIDTH/2, -CAMERA_HEIGHT/2 + PLAYER_SIZE*2);
 	
+//	public static final float LANE_LEFT = PLAYER_HOME_POSITION.x - LANE_STEP_SIZE;
+//	public static final float LANE_MID = PLAYER_HOME_POSITION.x;
+//	public static final float LANE_RIGHT = PLAYER_HOME_POSITION.x + LANE_STEP_SIZE;
+	
 	public static final Vector2 PLAYER_SPRITE_SPAWN = new Vector2(PLAYER_HOME_POSITION.x - PLAYER_SIZE/2, PLAYER_HOME_POSITION.y -PLAYER_SIZE/2);
 
 	
@@ -131,7 +135,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		
 		initBackground();
 		initPlayer();
-		initObstacle();
+		spawnMob();
 //		showFPS();
 
 		return this.mScene;
@@ -236,14 +240,15 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	// ===========================================================
 	
 	private void initBackground() {
+		
 		final VertexBufferObjectManager vertexBufferObjectManager = this.getVertexBufferObjectManager();
 		final AutoVerticalParallaxBackground autoParallaxBackground = new AutoVerticalParallaxBackground(0, 0, 0, 30);
 		autoParallaxBackground.attachVerticalParallaxEntity(new VerticalParallaxEntity(-5.0f, new Sprite(0, 720, this.mParallaxLayerBack, vertexBufferObjectManager)));
 		this.mScene.setBackground(autoParallaxBackground);
 	}
 	
-	private void initObstacle() {
-
+	private void spawnMob() {
+		
 		this.mEnemy = new MObject(
 				CAMERA_WIDTH/2-PLAYER_SIZE/2,
 				-CAMERA_HEIGHT - PLAYER_SIZE,
@@ -251,8 +256,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				PLAYER_SIZE,
 				this.mObstacleRegion,
 				this.getVertexBufferObjectManager(), 
-				mPhysicsWorld,
-				MObject.SHAPE_BOX);
+				mPhysicsWorld);
 		
 		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mEnemy.getSprite(), mEnemy.getBody(), true, false));
 		this.mScene.attachChild(mEnemy.getSprite());
@@ -263,11 +267,11 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mPlayer = new MObject(
 				PLAYER_SPRITE_SPAWN.x,
 				PLAYER_SPRITE_SPAWN.y,
-				PLAYER_SIZE, PLAYER_SIZE,
+				PLAYER_SIZE,
+				PLAYER_SIZE,
 				this.mPlayerRegion,
 				this.getVertexBufferObjectManager(),
-				mPhysicsWorld,
-				MObject.SHAPE_BOX);
+				mPhysicsWorld);
 		
 		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mPlayer.getSprite(), mPlayer.getBody(), true, false));
 		this.mScene.attachChild(mPlayer.getSprite());
