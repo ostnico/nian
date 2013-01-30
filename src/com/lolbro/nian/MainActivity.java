@@ -2,6 +2,7 @@ package com.lolbro.nian;
 
 import org.andengine.engine.camera.SmoothCamera;
 import org.andengine.engine.camera.hud.HUD;
+import org.andengine.engine.handler.IUpdateHandler;
 import org.andengine.engine.handler.timer.ITimerCallback;
 import org.andengine.engine.handler.timer.TimerHandler;
 import org.andengine.engine.options.EngineOptions;
@@ -39,7 +40,7 @@ import com.lolbro.nian.customs.SwipeScene;
 import com.lolbro.nian.customs.SwipeScene.SwipeListener;
 
 
-public class MainActivity extends SimpleBaseGameActivity implements SwipeListener {
+public class MainActivity extends SimpleBaseGameActivity implements SwipeListener, IUpdateHandler {
 	
 	// ===========================================================
 	// Constants
@@ -65,7 +66,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private SmoothCamera mCamera;
 	
-	private Scene mScene;
+	private SwipeScene mScene;
 	
 	private PhysicsWorld mPhysicsWorld;
 	
@@ -123,6 +124,20 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	}
 	
 	// ===========================================================
+	// On update
+	// ===========================================================
+	
+	@Override
+	public void onUpdate(float fffffff) {
+				
+	}
+	
+	public void reset() {
+		
+	}
+	
+	
+	// ===========================================================
 	// Methods
 	// ===========================================================
 	
@@ -168,6 +183,14 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		        }
 		}));
 	}
+	
+	@Override
+	public synchronized void onResumeGame() {
+		super.onResumeGame();
+		mScene.registerForGestureDetection(this, this);
+	}
+	
+	
 	
 	private void jump(int direction){
 		switch(direction){
