@@ -1,5 +1,7 @@
 package com.lolbro.nian;
 
+import java.util.Random;
+
 import org.andengine.engine.camera.SmoothCamera;
 import org.andengine.engine.camera.hud.HUD;
 import org.andengine.engine.handler.IUpdateHandler;
@@ -31,6 +33,7 @@ import org.andengine.ui.activity.SimpleBaseGameActivity;
 import org.andengine.util.HorizontalAlign;
 
 import android.graphics.Typeface;
+import android.util.Log;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -60,27 +63,21 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private static final int MENU_RETRY = 1;
 	
-	private static final int PLAYER_SIZE = 64;
-
 	private static final float LANE_STEP_SIZE = 140;
+	public static final float LANE_MID = CAMERA_WIDTH/2;
+	public static final float LANE_LEFT = LANE_MID - LANE_STEP_SIZE;
+	public static final float LANE_RIGHT = LANE_MID + LANE_STEP_SIZE;
 	
-	private static final float PLAYER_ROLL_SPEED = 15f;
-	
+	private static final int PLAYER_SIZE = 64;
+	private static final float PLAYER_ROLL_SPEED = 25f;
 	private static final String PLAYER_USERDATA = "body_player";
+	public static final Vector2 PLAYER_HOME_POSITION = new Vector2(LANE_MID, -CAMERA_HEIGHT/2 + PLAYER_SIZE*2);
+	public static final Vector2 PLAYER_SPRITE_SPAWN = new Vector2(PLAYER_HOME_POSITION.x - PLAYER_SIZE/2, PLAYER_HOME_POSITION.y -PLAYER_SIZE/2);
 	
 	public static final int JUMP_UP = SwipeListener.DIRECTION_UP;
 	public static final int JUMP_DOWN = SwipeListener.DIRECTION_DOWN;
 	public static final int JUMP_LEFT = SwipeListener.DIRECTION_LEFT;
 	public static final int JUMP_RIGHT = SwipeListener.DIRECTION_RIGHT;
-	
-	public static final Vector2 PLAYER_HOME_POSITION = new Vector2(CAMERA_WIDTH/2, -CAMERA_HEIGHT/2 + PLAYER_SIZE*2);
-	
-//	public static final float LANE_LEFT = PLAYER_HOME_POSITION.x - LANE_STEP_SIZE;
-//	public static final float LANE_MID = PLAYER_HOME_POSITION.x;
-//	public static final float LANE_RIGHT = PLAYER_HOME_POSITION.x + LANE_STEP_SIZE;
-	
-	public static final Vector2 PLAYER_SPRITE_SPAWN = new Vector2(PLAYER_HOME_POSITION.x - PLAYER_SIZE/2, PLAYER_HOME_POSITION.y -PLAYER_SIZE/2);
-	
 	
 	// ===========================================================
 	// Fields
@@ -101,6 +98,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 
 	private MObject mPlayer;
 	private MObject mEnemy;
+	
+	private Random random = new Random();
 	
 	private BitmapTextureAtlas mAutoParallaxBackgroundTexture;
 	private ITextureRegion mParallaxLayerBack;
@@ -233,6 +232,13 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				}			
 			}
 		}
+		
+		Body enemyBody = mEnemy.getBody();
+		enemyBody.setTransform(mEnemy.getBodyPositionX(true), mEnemy.getBodyPositionY(true)+10f*pSecondsElapsed, 0);
+		if (mEnemy.getBodyPositionY(false) > PLAYER_SIZE) {
+			enemyBody.setTransform(mEnemy.getBodyPositionX(true), -CAMERA_HEIGHT/32 - PLAYER_SIZE/32, 0);
+		}
+		
 	}
 	
 	// ===========================================================
@@ -245,7 +251,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		Object userDataB = contact.getFixtureB().getBody().getUserData();
 		
 		if(userDataA.equals(PLAYER_USERDATA) || userDataB.equals(PLAYER_USERDATA)){
-			
+			Log.d("nian", "FITTA");
 		}
 	}
 
@@ -277,9 +283,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	}
 	
 	private void spawnMob() {
-		
 		this.mEnemy = new MObject(
-				CAMERA_WIDTH/2-PLAYER_SIZE/2,
+				randomLane(),
 				-CAMERA_HEIGHT - PLAYER_SIZE,
 				PLAYER_SIZE,
 				PLAYER_SIZE,
@@ -340,8 +345,12 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		}));
 	}
 	
-	/* Methods for moving */
+	/* Methods of random usefulness :) */
+	private float randomLane() {
+		return LANE_MID + (random.nextInt(2)-1) * LANE_STEP_SIZE;
+	}
 	
+	/* Methods for moving */
 	private void jump(int direction){
 		if(isMoving()){
 			return;
