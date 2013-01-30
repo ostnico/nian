@@ -21,6 +21,8 @@ import org.andengine.opengl.texture.atlas.bitmap.source.AssetBitmapTextureAtlasS
 import org.andengine.opengl.texture.region.ITextureRegion;
 import org.andengine.ui.activity.SimpleBaseGameActivity;
 
+import android.util.Log;
+
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
@@ -47,6 +49,10 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	public static final int JUMP_DOWN = 2;
 	public static final int JUMP_LEFT = 3;
 	public static final int JUMP_RIGHT = 4;
+	
+	public static final Vector2 PLAYER_HOME_POSITION = new Vector2(CAMERA_WIDTH/2, -CAMERA_HEIGHT/2 + PLAYER_SIZE*2);
+	
+	public static final Vector2 PLAYER_SPRITE_SPAWN = new Vector2(PLAYER_HOME_POSITION.x - PLAYER_SIZE/2, PLAYER_HOME_POSITION.y -PLAYER_SIZE/2);
 
 	
 	// ===========================================================
@@ -68,7 +74,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private Sprite mObstacleSprite;
 	
 	private boolean moveLeft = false;
-	private boolean swipeRight = false;
+	private boolean moveRight = false;
+	private boolean moveUp = false;
+	private boolean moveDown = false;
 	
 	private short rollCounter = 0;
 	
@@ -118,7 +126,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		initPlayer();
 		initObstacle();
 //		showFPS();
-		
+
 		return this.mScene;
 	}
 	
@@ -128,13 +136,48 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	@Override
 	public void onUpdate(float pSecondsElapsed) {
-		if (moveLeft == true) {
-			if (rollCounter < 20) {
+		
+		if (moveUp == true) {
+			if (rollCounter < 7) {
 				rollCounter++;
-				mPlayerBody.setLinearVelocity(-2, 0);
+				mPlayerBody.setLinearVelocity(0, -40);
+			} else {
+				moveUp = false;
+				rollCounter = 0;
+				mPlayerBody.setLinearVelocity(0, 0);
+			}
+		}
+		
+		if (moveDown == true) {
+			if (rollCounter < 7) {
+				rollCounter++;
+				mPlayerBody.setLinearVelocity(0, 40);
+			} else {
+				moveDown = false;
+				rollCounter = 0;
+				mPlayerBody.setLinearVelocity(0, 0);
+			}
+		}
+		
+		if (moveLeft == true) {
+			if (rollCounter < 7) {
+				rollCounter++;
+				mPlayerBody.setLinearVelocity(-40, 0);
 			} else {
 				moveLeft = false;
 				rollCounter = 0;
+				mPlayerBody.setLinearVelocity(0, 0);
+			}
+		}
+		
+		if (moveRight == true) {
+			if (rollCounter < 7) {
+				rollCounter++;
+				mPlayerBody.setLinearVelocity(40, 0);
+			} else {
+				moveRight = false;
+				rollCounter = 0;
+				mPlayerBody.setLinearVelocity(0, 0);
 			}
 		}
 				
@@ -143,7 +186,6 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	// ===========================================================
 	// Methods
 	// ===========================================================
-	
 	
 	private void initBackground() {
 		this.mScene.setBackground(new RepeatingSpriteBackground((float)CAMERA_WIDTH, (float)CAMERA_HEIGHT, getTextureManager(), AssetBitmapTextureAtlasSource.create(getAssets(), "gfx/floor_1.png"), this.getVertexBufferObjectManager()));
@@ -163,7 +205,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	}
 	
 	private void initPlayer() {
-		mPlayerSprite = new Sprite(CAMERA_WIDTH/2-PLAYER_SIZE/2, -PLAYER_SIZE*2, PLAYER_SIZE, PLAYER_SIZE, this.mPlayerRegion, this.getVertexBufferObjectManager()){
+		mPlayerSprite = new Sprite(PLAYER_SPRITE_SPAWN.x, PLAYER_SPRITE_SPAWN.y, PLAYER_SIZE, PLAYER_SIZE, this.mPlayerRegion, this.getVertexBufferObjectManager()){
 			@Override
 			public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
 				mObstacleBody.setLinearVelocity(0, 5);
@@ -213,27 +255,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	@Override
 	public void reset() {
-		
 	}
 	
 	/* Methods for moving */
-	private void jump(int direction){
-		switch(direction){
-		case JUMP_UP:
-			mPlayerBody.setLinearVelocity(mPlayerBody.getLinearVelocity().x, -25);
-			break;
-		case JUMP_DOWN:
-			mPlayerBody.setLinearVelocity(mPlayerBody.getLinearVelocity().x, 20);
-			break;
-		case JUMP_LEFT:
-			if (moveLeft == false && mPlayerBody.getPosition().x*32 >= CAMERA_WIDTH/2) {
-				moveLeft = true;
-			} break;
-		case JUMP_RIGHT:
-			mPlayerBody.setLinearVelocity(3.5f, mPlayerBody.getLinearVelocity().y);
-			break;
-		}
-	}
 	
 	@Override
 	public void onSwipe(int direction) {
@@ -251,8 +275,36 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		case SwipeListener.DIRECTION_DOWN:
 			jump(JUMP_DOWN);
 			break;
+		}	
+	}
+	
+	private void jump(int direction){
+		switch(direction){
+		case JUMP_UP:
+			if (isMoving() == false && mPlayerBody.getPosition().y * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT >= PLAYER_HOME_POSITION.y) {
+				moveUp = true;
+			} break;
+		case JUMP_DOWN:
+			if (isMoving() == false && mPlayerBody.getPosition().y * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT <= PLAYER_HOME_POSITION.y) {
+				moveDown = true;
+			} break;
+		case JUMP_LEFT:
+			if (isMoving() == false && mPlayerBody.getPosition().x * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT >= PLAYER_HOME_POSITION.x) {
+				moveLeft = true;
+			} break;
+		case JUMP_RIGHT:
+			if (isMoving() == false && mPlayerBody.getPosition().x * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT <= PLAYER_HOME_POSITION.x+1) {
+				moveRight = true;
+			} break;
 		}
-		
+	}
+	
+	private boolean isMoving() {
+		if (moveLeft == true || moveRight == true || moveUp == true || moveDown == true) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 	
 	// ===========================================================
