@@ -196,40 +196,41 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	@Override
 	public void onUpdate(float pSecondsElapsed) {
-		
-		Body playerBody = mPlayer.getBody();
-
-		float x = mPlayer.getBodyPositionX(true);
-		float y = mPlayer.getBodyPositionY(true);
-		float rollMovement = PLAYER_ROLL_SPEED * pSecondsElapsed;
-		
-		if (moveUp == true) {
-			if (y - rollMovement > rollToPosition) {
-				playerBody.setTransform(x, y - rollMovement, 0);
-			} else {
-				moveUp = false;
-				playerBody.setTransform(x, rollToPosition, 0);
-			}
-		} else if (moveDown == true) {
-			if (y + rollMovement < rollToPosition) {
-				playerBody.setTransform(x, y + rollMovement, 0);
-			} else {
-				moveDown = false;
-				playerBody.setTransform(x, rollToPosition, 0);
-			}
-		} else if (moveLeft == true) {
-			if (x - rollMovement > rollToPosition) {
-				playerBody.setTransform(x - rollMovement, y, 0);
-			} else {
-				moveLeft = false;
-				playerBody.setTransform(rollToPosition, y, 0);
-			}
-		} else if (moveRight == true) {
-			if (x + rollMovement < rollToPosition) {
-				playerBody.setTransform(x + rollMovement, y, 0);
-			} else {
-				moveRight = false;
-				playerBody.setTransform(rollToPosition, y, 0);
+		if (isMoving()){
+			Body playerBody = mPlayer.getBody();
+	
+			float x = mPlayer.getBodyPositionX(true);
+			float y = mPlayer.getBodyPositionY(true);
+			float rollMovement = PLAYER_ROLL_SPEED * pSecondsElapsed;
+			
+			if (moveUp == true) {
+				if (y - rollMovement > rollToPosition) {
+					playerBody.setTransform(x, y - rollMovement, 0);
+				} else {
+					moveUp = false;
+					playerBody.setTransform(x, rollToPosition, 0);
+				}
+			} else if (moveDown == true) {
+				if (y + rollMovement < rollToPosition) {
+					playerBody.setTransform(x, y + rollMovement, 0);
+				} else {
+					moveDown = false;
+					playerBody.setTransform(x, rollToPosition, 0);
+				}
+			} else if (moveLeft == true) {
+				if (x - rollMovement > rollToPosition) {
+					playerBody.setTransform(x - rollMovement, y, 0);
+				} else {
+					moveLeft = false;
+					playerBody.setTransform(rollToPosition, y, 0);
+				}
+			} else if (moveRight == true) {
+				if (x + rollMovement < rollToPosition) {
+					playerBody.setTransform(x + rollMovement, y, 0);
+				} else {
+					moveRight = false;
+					playerBody.setTransform(rollToPosition, y, 0);
+				}			
 			}
 		}
 	}
