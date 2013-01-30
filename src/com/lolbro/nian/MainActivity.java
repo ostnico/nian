@@ -204,28 +204,28 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		float rollMovement = PLAYER_ROLL_SPEED * pSecondsElapsed;
 		
 		if (moveUp == true) {
-			if (y > rollToPosition) {
+			if (y - rollMovement > rollToPosition) {
 				playerBody.setTransform(x, y - rollMovement, 0);
 			} else {
 				moveUp = false;
 				playerBody.setTransform(x, rollToPosition, 0);
 			}
 		} else if (moveDown == true) {
-			if (y < rollToPosition) {
+			if (y + rollMovement < rollToPosition) {
 				playerBody.setTransform(x, y + rollMovement, 0);
 			} else {
 				moveDown = false;
 				playerBody.setTransform(x, rollToPosition, 0);
 			}
 		} else if (moveLeft == true) {
-			if (x > rollToPosition) {
+			if (x - rollMovement > rollToPosition) {
 				playerBody.setTransform(x - rollMovement, y, 0);
 			} else {
 				moveLeft = false;
 				playerBody.setTransform(rollToPosition, y, 0);
 			}
 		} else if (moveRight == true) {
-			if (x < rollToPosition) {
+			if (x + rollMovement < rollToPosition) {
 				playerBody.setTransform(x + rollMovement, y, 0);
 			} else {
 				moveRight = false;
