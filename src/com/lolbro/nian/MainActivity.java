@@ -7,13 +7,10 @@ import org.andengine.engine.options.ScreenOrientation;
 import org.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
 import org.andengine.entity.scene.Scene;
 import org.andengine.entity.scene.background.RepeatingSpriteBackground;
-import org.andengine.entity.sprite.Sprite;
 import org.andengine.extension.physics.box2d.FixedStepPhysicsWorld;
 import org.andengine.extension.physics.box2d.PhysicsConnector;
-import org.andengine.extension.physics.box2d.PhysicsFactory;
 import org.andengine.extension.physics.box2d.PhysicsWorld;
 import org.andengine.extension.physics.box2d.util.constants.PhysicsConstants;
-import org.andengine.input.touch.TouchEvent;
 import org.andengine.opengl.texture.TextureOptions;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlas;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasTextureRegionFactory;
@@ -23,13 +20,16 @@ import org.andengine.ui.activity.SimpleBaseGameActivity;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
-import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
-import com.badlogic.gdx.physics.box2d.FixtureDef;
+import com.badlogic.gdx.physics.box2d.Contact;
+import com.badlogic.gdx.physics.box2d.ContactImpulse;
+import com.badlogic.gdx.physics.box2d.ContactListener;
+import com.badlogic.gdx.physics.box2d.Manifold;
 import com.lolbro.nian.customs.SwipeScene;
 import com.lolbro.nian.customs.SwipeScene.SwipeListener;
+import com.lolbro.nian.models.Obstacle;
 
 
-public class MainActivity extends SimpleBaseGameActivity implements SwipeListener, IUpdateHandler {
+public class MainActivity extends SimpleBaseGameActivity implements SwipeListener, IUpdateHandler, ContactListener {
 	
 	// ===========================================================
 	// Constants
@@ -65,11 +65,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private BitmapTextureAtlas mCharactersTexture;
 	private ITextureRegion mPlayerRegion;
-	
-	private Body mPlayerBody;
-	private Sprite mPlayerSprite;
-	private Body mObstacleBody;
-	private Sprite mObstacleSprite;
+
+	private Obstacle mPlayer;
+	private Obstacle mEnemy;
 	
 	private boolean moveLeft = false;
 	private boolean moveRight = false;
@@ -127,53 +125,6 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		return this.mScene;
 	}
 	
-	// ===========================================================
-	// On update
-	// ===========================================================
-	
-	@Override
-	public void onUpdate(float pSecondsElapsed) {
-		
-		if (moveUp == true) {
-			if (rollCounter < 7) {
-				rollCounter++;
-				mPlayerBody.setLinearVelocity(0, -40);
-			} else {
-				moveUp = false;
-				rollCounter = 0;
-				mPlayerBody.setLinearVelocity(0, 0);
-			}
-		} else if (moveDown == true) {
-			if (rollCounter < 7) {
-				rollCounter++;
-				mPlayerBody.setLinearVelocity(0, 40);
-			} else {
-				moveDown = false;
-				rollCounter = 0;
-				mPlayerBody.setLinearVelocity(0, 0);
-			}
-		} else if (moveLeft == true) {
-			if (rollCounter < 7) {
-				rollCounter++;
-				mPlayerBody.setLinearVelocity(-40, 0);
-			} else {
-				moveLeft = false;
-				rollCounter = 0;
-				mPlayerBody.setLinearVelocity(0, 0);
-			}
-		} else if (moveRight == true) {
-			if (rollCounter < 7) {
-				rollCounter++;
-				mPlayerBody.setLinearVelocity(40, 0);
-			} else {
-				moveRight = false;
-				rollCounter = 0;
-				mPlayerBody.setLinearVelocity(0, 0);
-			}
-		}
-				
-	}
-	
 	@Override
 	public synchronized void onResumeGame() {
 		super.onResumeGame();
@@ -190,6 +141,83 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	}
 	
 	// ===========================================================
+	// On update
+	// ===========================================================
+	
+	@Override
+	public void onUpdate(float pSecondsElapsed) {
+		
+		Body playerBody = mPlayer.getBody();
+		
+		if (moveUp == true) {
+			if (rollCounter < 7) {
+				rollCounter++;
+				playerBody.setLinearVelocity(0, -40);
+			} else {
+				moveUp = false;
+				rollCounter = 0;
+				playerBody.setLinearVelocity(0, 0);
+			}
+		} else if (moveDown == true) {
+			if (rollCounter < 7) {
+				rollCounter++;
+				playerBody.setLinearVelocity(0, 40);
+			} else {
+				moveDown = false;
+				rollCounter = 0;
+				playerBody.setLinearVelocity(0, 0);
+			}
+		} else if (moveLeft == true) {
+			if (rollCounter < 7) {
+				rollCounter++;
+				playerBody.setLinearVelocity(-40, 0);
+			} else {
+				moveLeft = false;
+				rollCounter = 0;
+				playerBody.setLinearVelocity(0, 0);
+			}
+		} else if (moveRight == true) {
+			if (rollCounter < 7) {
+				rollCounter++;
+				playerBody.setLinearVelocity(40, 0);
+			} else {
+				moveRight = false;
+				rollCounter = 0;
+				playerBody.setLinearVelocity(0, 0);
+			}
+		}
+				
+	}
+	
+	// ===========================================================
+	// On Contact
+	// ===========================================================
+	
+	@Override
+	public void beginContact(Contact contact) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void endContact(Contact contact) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void preSolve(Contact contact, Manifold oldManifold) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void postSolve(Contact contact, ContactImpulse impulse) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	// ===========================================================
 	// Methods
 	// ===========================================================
 	
@@ -198,40 +226,32 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	}
 	
 	private void initObstacle() {
-		mObstacleSprite = new Sprite(CAMERA_WIDTH/2-PLAYER_SIZE/2, -CAMERA_HEIGHT - PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE, this.mPlayerRegion, this.getVertexBufferObjectManager());
+		this.mEnemy = new Obstacle(
+				CAMERA_WIDTH/2-PLAYER_SIZE/2,
+				-CAMERA_HEIGHT - PLAYER_SIZE,
+				PLAYER_SIZE,
+				PLAYER_SIZE,
+				this.mPlayerRegion,
+				this.getVertexBufferObjectManager(), 
+				mPhysicsWorld,
+				Obstacle.SHAPE_BOX);
 		
-		final FixtureDef obstacleFixtureDef = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
-		
-		mObstacleBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, mObstacleSprite, BodyType.DynamicBody, obstacleFixtureDef);
-		mObstacleBody.setFixedRotation(true);
-		
-		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mObstacleSprite, mObstacleBody, true, true));
-		
-		this.mScene.attachChild(mObstacleSprite);
+		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mEnemy.getSprite(), mEnemy.getBody(), true, false));
+		this.mScene.attachChild(mEnemy.getSprite());
 	}
 	
 	private void initPlayer() {
-		mPlayerSprite = new Sprite(PLAYER_SPRITE_SPAWN.x, PLAYER_SPRITE_SPAWN.y, PLAYER_SIZE, PLAYER_SIZE, this.mPlayerRegion, this.getVertexBufferObjectManager()){
-			@Override
-			public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
-				mObstacleBody.setLinearVelocity(0, 5);
-//				mPlayerBody.setLinearVelocity(0, -10);
-//				mCamera.setCenter(0, -2000);
-				return super.onAreaTouched(pSceneTouchEvent, pTouchAreaLocalX, pTouchAreaLocalY);
-			}
-		};
+		this.mPlayer = new Obstacle(
+				PLAYER_SPRITE_SPAWN.x,
+				PLAYER_SPRITE_SPAWN.y,
+				PLAYER_SIZE, PLAYER_SIZE,
+				this.mPlayerRegion,
+				this.getVertexBufferObjectManager(),
+				mPhysicsWorld,
+				Obstacle.SHAPE_BOX);
 		
-		final FixtureDef playerFixtureDef = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
-
-		mPlayerBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, mPlayerSprite, BodyType.DynamicBody, playerFixtureDef);
-		mPlayerBody.setFixedRotation(true);
-//		mPlayerBody.setLinearDamping(10);
-//		mPlayerBody.setAngularDamping(10);
-		
-		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mPlayerSprite, mPlayerBody, true, true));
-		
-		this.mScene.attachChild(mPlayerSprite);
-		this.mScene.registerTouchArea(mPlayerSprite);
+		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mPlayer.getSprite(), mPlayer.getBody(), true, false));
+		this.mScene.attachChild(mPlayer.getSprite());
 	}
 	
 	/* Methods for debugging */
@@ -259,21 +279,23 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			return;
 		}
 		
+		Vector2 playerPosition = mPlayer.getBodyPosition(false);
+		
 		switch(direction){
 		case JUMP_UP:
-			if ((int)mPlayerBody.getPosition().y * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT >= PLAYER_HOME_POSITION.y) {
+			if ((int)playerPosition.y >= PLAYER_HOME_POSITION.y) {
 				moveUp = true;
 			} break;
 		case JUMP_DOWN:
-			if ((int)mPlayerBody.getPosition().y * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT <= PLAYER_HOME_POSITION.y) {
+			if ((int)playerPosition.y <= PLAYER_HOME_POSITION.y) {
 				moveDown = true;
 			} break;
 		case JUMP_LEFT:
-			if ((int)mPlayerBody.getPosition().x * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT >= PLAYER_HOME_POSITION.x) {
+			if ((int)playerPosition.x >= PLAYER_HOME_POSITION.x) {
 				moveLeft = true;
 			} break;
 		case JUMP_RIGHT:
-			if ((int)mPlayerBody.getPosition().x * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT <= PLAYER_HOME_POSITION.x) {
+			if ((int)playerPosition.x <= PLAYER_HOME_POSITION.x) {
 				moveRight = true;
 			} break;
 		}
