@@ -21,8 +21,6 @@ import org.andengine.opengl.texture.atlas.bitmap.source.AssetBitmapTextureAtlasS
 import org.andengine.opengl.texture.region.ITextureRegion;
 import org.andengine.ui.activity.SimpleBaseGameActivity;
 
-import android.util.Log;
-
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
@@ -45,10 +43,10 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private static final int PLAYER_SIZE = 64;
 
-	public static final int JUMP_UP = 1;
-	public static final int JUMP_DOWN = 2;
-	public static final int JUMP_LEFT = 3;
-	public static final int JUMP_RIGHT = 4;
+	public static final int JUMP_UP = SwipeListener.DIRECTION_UP;
+	public static final int JUMP_DOWN = SwipeListener.DIRECTION_DOWN;
+	public static final int JUMP_LEFT = SwipeListener.DIRECTION_LEFT;
+	public static final int JUMP_RIGHT = SwipeListener.DIRECTION_RIGHT;
 	
 	public static final Vector2 PLAYER_HOME_POSITION = new Vector2(CAMERA_WIDTH/2, -CAMERA_HEIGHT/2 + PLAYER_SIZE*2);
 	
@@ -93,8 +91,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	// ===========================================================
 	
 	@Override
-	public EngineOptions onCreateEngineOptions() {		
-//		this.mCamera = new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
+	public EngineOptions onCreateEngineOptions() {
 		this.mCamera = new SmoothCamera(0, -CAMERA_HEIGHT, CAMERA_WIDTH, CAMERA_HEIGHT, 10 * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, 10 * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, 10);
 		
 		//new RatioResolutionPolicy(CAMERA_WIDTH, CAMERA_HEIGHT)
@@ -146,9 +143,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				rollCounter = 0;
 				mPlayerBody.setLinearVelocity(0, 0);
 			}
-		}
-		
-		if (moveDown == true) {
+		} else if (moveDown == true) {
 			if (rollCounter < 7) {
 				rollCounter++;
 				mPlayerBody.setLinearVelocity(0, 40);
@@ -157,9 +152,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				rollCounter = 0;
 				mPlayerBody.setLinearVelocity(0, 0);
 			}
-		}
-		
-		if (moveLeft == true) {
+		} else if (moveLeft == true) {
 			if (rollCounter < 7) {
 				rollCounter++;
 				mPlayerBody.setLinearVelocity(-40, 0);
@@ -168,9 +161,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				rollCounter = 0;
 				mPlayerBody.setLinearVelocity(0, 0);
 			}
-		}
-		
-		if (moveRight == true) {
+		} else if (moveRight == true) {
 			if (rollCounter < 7) {
 				rollCounter++;
 				mPlayerBody.setLinearVelocity(40, 0);
@@ -181,6 +172,21 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			}
 		}
 				
+	}
+	
+	@Override
+	public synchronized void onResumeGame() {
+		super.onResumeGame();
+		mScene.registerForGestureDetection(this, this);
+	}
+	
+	@Override
+	public void reset() {
+	}
+	
+	@Override
+	public void onSwipe(int direction) {
+		jump(direction);	
 	}
 	
 	// ===========================================================
@@ -246,65 +252,35 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 //		}));
 //	}
 	
-	/* Methods for onUpdate */
-	@Override
-	public synchronized void onResumeGame() {
-		super.onResumeGame();
-		mScene.registerForGestureDetection(this, this);
-	}
-	
-	@Override
-	public void reset() {
-	}
-	
 	/* Methods for moving */
 	
-	@Override
-	public void onSwipe(int direction) {
+	private void jump(int direction){
+		if(isMoving()){
+			return;
+		}
 		
 		switch(direction){
-		case SwipeListener.DIRECTION_UP:			
-			jump(JUMP_UP);
-			break;
-		case SwipeListener.DIRECTION_LEFT:
-			jump(JUMP_LEFT);
-			break;
-		case SwipeListener.DIRECTION_RIGHT:
-			jump(JUMP_RIGHT);
-			break;
-		case SwipeListener.DIRECTION_DOWN:
-			jump(JUMP_DOWN);
-			break;
-		}	
-	}
-	
-	private void jump(int direction){
-		switch(direction){
 		case JUMP_UP:
-			if (isMoving() == false && mPlayerBody.getPosition().y * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT >= PLAYER_HOME_POSITION.y) {
+			if ((int)mPlayerBody.getPosition().y * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT >= PLAYER_HOME_POSITION.y) {
 				moveUp = true;
 			} break;
 		case JUMP_DOWN:
-			if (isMoving() == false && mPlayerBody.getPosition().y * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT <= PLAYER_HOME_POSITION.y) {
+			if ((int)mPlayerBody.getPosition().y * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT <= PLAYER_HOME_POSITION.y) {
 				moveDown = true;
 			} break;
 		case JUMP_LEFT:
-			if (isMoving() == false && mPlayerBody.getPosition().x * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT >= PLAYER_HOME_POSITION.x) {
+			if ((int)mPlayerBody.getPosition().x * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT >= PLAYER_HOME_POSITION.x) {
 				moveLeft = true;
 			} break;
 		case JUMP_RIGHT:
-			if (isMoving() == false && mPlayerBody.getPosition().x * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT <= PLAYER_HOME_POSITION.x+1) {
+			if ((int)mPlayerBody.getPosition().x * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT <= PLAYER_HOME_POSITION.x) {
 				moveRight = true;
 			} break;
 		}
 	}
 	
 	private boolean isMoving() {
-		if (moveLeft == true || moveRight == true || moveUp == true || moveDown == true) {
-			return true;
-		} else {
-			return false;
-		}
+		return (moveLeft == true || moveRight == true || moveUp == true || moveDown == true);
 	}
 	
 	// ===========================================================
