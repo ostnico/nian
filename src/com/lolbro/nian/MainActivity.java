@@ -28,7 +28,7 @@ import com.lolbro.nian.customs.AutoVerticalParallaxBackground;
 import com.lolbro.nian.customs.SwipeScene;
 import com.lolbro.nian.customs.SwipeScene.SwipeListener;
 import com.lolbro.nian.customs.VerticalParallaxBackground.VerticalParallaxEntity;
-import com.lolbro.nian.models.Obstacle;
+import com.lolbro.nian.models.MObject;
 
 
 
@@ -70,8 +70,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private ITextureRegion mPlayerRegion;
 	private ITextureRegion mObstacleRegion;
 
-	private Obstacle mPlayer;
-	private Obstacle mEnemy;
+	private MObject mPlayer;
+	private MObject mEnemy;
 	
 	private BitmapTextureAtlas mAutoParallaxBackgroundTexture;
 	private ITextureRegion mParallaxLayerBack;
@@ -244,7 +244,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private void initObstacle() {
 
-		this.mEnemy = new Obstacle(
+		this.mEnemy = new MObject(
 				CAMERA_WIDTH/2-PLAYER_SIZE/2,
 				-CAMERA_HEIGHT - PLAYER_SIZE,
 				PLAYER_SIZE,
@@ -252,7 +252,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				this.mObstacleRegion,
 				this.getVertexBufferObjectManager(), 
 				mPhysicsWorld,
-				Obstacle.SHAPE_BOX);
+				MObject.SHAPE_BOX);
 		
 		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mEnemy.getSprite(), mEnemy.getBody(), true, false));
 		this.mScene.attachChild(mEnemy.getSprite());
@@ -260,14 +260,14 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private void initPlayer() {
 
-		this.mPlayer = new Obstacle(
+		this.mPlayer = new MObject(
 				PLAYER_SPRITE_SPAWN.x,
 				PLAYER_SPRITE_SPAWN.y,
 				PLAYER_SIZE, PLAYER_SIZE,
 				this.mPlayerRegion,
 				this.getVertexBufferObjectManager(),
 				mPhysicsWorld,
-				Obstacle.SHAPE_BOX);
+				MObject.SHAPE_BOX);
 		
 		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mPlayer.getSprite(), mPlayer.getBody(), true, false));
 		this.mScene.attachChild(mPlayer.getSprite());

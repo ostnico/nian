@@ -12,7 +12,7 @@ import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 
-public class Obstacle {
+public class MObject {
 
 	public static final int SHAPE_BOX = 1;
 	public static final int SHAPE_CIRCLE = 2;
@@ -30,7 +30,7 @@ public class Obstacle {
 	 * @param vertexBufferObjectManager
 	 * @param physicsWorld
 	 */
-	public Obstacle(float x, float y, int width, int height, ITextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld){
+	public MObject(float x, float y, int width, int height, ITextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld){
 		this(x, y, width, height, textureRegion, vertexBufferObjectManager, physicsWorld, SHAPE_BOX);
 	}
 	
@@ -45,7 +45,7 @@ public class Obstacle {
 	 * @param physicsWorld
 	 * @param shape
 	 */
-	public Obstacle(float x, float y, int width, int height, ITextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape){
+	public MObject(float x, float y, int width, int height, ITextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape){
 		this(x, y, width, height, textureRegion, vertexBufferObjectManager, physicsWorld, shape, PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f));
 	}
 	
@@ -61,7 +61,7 @@ public class Obstacle {
 	 * @param shape
 	 * @param fixtureDef
 	 */
-	public Obstacle(float x, float y, int width, int height, ITextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape, FixtureDef fixtureDef){
+	public MObject(float x, float y, int width, int height, ITextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape, FixtureDef fixtureDef){
 		sprite = new Sprite(x, y, width, height, textureRegion, vertexBufferObjectManager);
 		final FixtureDef playerFixtureDef = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
 		
