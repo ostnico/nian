@@ -74,6 +74,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	public static final Vector2 PLAYER_HOME_POSITION = new Vector2(LANE_MID, -CAMERA_HEIGHT/2 + PLAYER_SIZE*2);
 	public static final Vector2 PLAYER_SPRITE_SPAWN = new Vector2(PLAYER_HOME_POSITION.x - PLAYER_SIZE/2, PLAYER_HOME_POSITION.y -PLAYER_SIZE/2);
 	
+	private static final int ENEMY_SIZE = 64;
+	private static final float ENEMY_SPEED = 15f;
+	
 	public static final int JUMP_UP = SwipeListener.DIRECTION_UP;
 	public static final int JUMP_DOWN = SwipeListener.DIRECTION_DOWN;
 	public static final int JUMP_LEFT = SwipeListener.DIRECTION_LEFT;
@@ -98,6 +101,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 
 	private MObject mPlayer;
 	private MObject mEnemy;
+	
+	private int allowedEnemyQuantity = 1;
+	private int enemyQuantity = 0;
 	
 	private Random random = new Random();
 	
@@ -162,7 +168,6 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		
 		initBackground();
 		initPlayer();
-		spawnMob();
 //		showFPS();
 
 		return this.mScene;
@@ -233,12 +238,21 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			}
 		}
 		
-		Body enemyBody = mEnemy.getBody();
-		enemyBody.setTransform(mEnemy.getBodyPositionX(true), mEnemy.getBodyPositionY(true)+10f*pSecondsElapsed, 0);
-		if (mEnemy.getBodyPositionY(false) > PLAYER_SIZE) {
-			enemyBody.setTransform(mEnemy.getBodyPositionX(true), -CAMERA_HEIGHT/32 - PLAYER_SIZE/32, 0);
+		if (enemyQuantity < allowedEnemyQuantity) {
+			spawnMob();
+			enemyQuantity++;
 		}
 		
+		if (enemyQuantity > 0) {
+			Body enemyBody = mEnemy.getBody();
+			enemyBody.setTransform(mEnemy.getBodyPositionX(true), mEnemy.getBodyPositionY(true) + ENEMY_SPEED*pSecondsElapsed, 0);
+			if (mEnemy.getBodyPositionY(false) > ENEMY_SIZE) {
+				mPhysicsWorld.unregisterPhysicsConnector(mPhysicsWorld.getPhysicsConnectorManager().findPhysicsConnectorByShape(mEnemy.getSprite()));
+				mPhysicsWorld.destroyBody(enemyBody);
+				mScene.detachChild(mEnemy.getSprite());
+				enemyQuantity--;
+			}			
+		}
 	}
 	
 	// ===========================================================
@@ -284,7 +298,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private void spawnMob() {
 		this.mEnemy = new MObject(
-				randomLane(),
+				randomLane()-PLAYER_SIZE/2,
 				-CAMERA_HEIGHT - PLAYER_SIZE,
 				PLAYER_SIZE,
 				PLAYER_SIZE,
@@ -347,7 +361,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	/* Methods of random usefulness :) */
 	private float randomLane() {
-		return LANE_MID + (random.nextInt(2)-1) * LANE_STEP_SIZE;
+		return LANE_MID + (random.nextInt(3)-1) * LANE_STEP_SIZE;
 	}
 	
 	/* Methods for moving */
