@@ -124,7 +124,7 @@ public class MObject {
 	 */
 	public MObject(float x, float y, ITiledTextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape, FixtureDef fixtureDef){
 		AnimatedSprite sprite = new AnimatedSprite(x, y, textureRegion, vertexBufferObjectManager);
-		sprite.animate(65);
+		sprite.animate(30);
 		sprite.setBlendFunction(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
 		this.sprite = sprite;
 		final FixtureDef playerFixtureDef = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
