@@ -1,5 +1,6 @@
 package com.lolbro.nian;
 
+import java.util.ArrayList;
 import java.util.Random;
 
 import org.andengine.engine.camera.SmoothCamera;
@@ -103,10 +104,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private ITextureRegion mMenuRetryRegion;
 
 	private MObject mPlayer;
-	private MObject mEnemy;
+	private ArrayList<MObject> mEnemies;
 	
-	private int allowedEnemyQuantity = 1;
-	private int enemyQuantity = 0;
+	private int allowedEnemyQuantity = 3;
 	
 	private Random random = new Random();
 	
@@ -172,6 +172,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mPhysicsWorld.setContactListener(this);
 		
 		this.mScene.registerUpdateHandler(this.mPhysicsWorld);
+		
+		this.mEnemies = new ArrayList<MObject>();
 		
 		initBackground();
 		initPlayer();
@@ -253,19 +255,19 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			}
 		}
 		
-		if (enemyQuantity < allowedEnemyQuantity) {
+		if (mEnemies.size() < allowedEnemyQuantity) {
 			spawnMob(randomLane());
-			enemyQuantity++;
 		}
 		
-		if (enemyQuantity > 0) {
-			Body enemyBody = mEnemy.getBody();
-			enemyBody.setTransform(mEnemy.getBodyPositionX(true), mEnemy.getBodyPositionY(true) + ENEMY_SPEED*pSecondsElapsed, 0);
-			if (mEnemy.getBodyPositionY(false) > ENEMY_SIZE) {
-				mPhysicsWorld.unregisterPhysicsConnector(mPhysicsWorld.getPhysicsConnectorManager().findPhysicsConnectorByShape(mEnemy.getSprite()));
+		for(int i=mEnemies.size()-1; i>=0; i--){
+			MObject enemy = mEnemies.get(i);
+			Body enemyBody = enemy.getBody();
+			enemyBody.setTransform(enemy.getBodyPositionX(true), enemy.getBodyPositionY(true) + ENEMY_SPEED*pSecondsElapsed, 0);
+			if (enemy.getBodyPositionY(false) > ENEMY_SIZE) {
+				mPhysicsWorld.unregisterPhysicsConnector(mPhysicsWorld.getPhysicsConnectorManager().findPhysicsConnectorByShape(enemy.getSprite()));
 				mPhysicsWorld.destroyBody(enemyBody);
-				mScene.detachChild(mEnemy.getSprite());
-				enemyQuantity--;
+				mScene.detachChild(enemy.getSprite());
+				mEnemies.remove(i);
 			}
 		}
 	}
@@ -279,7 +281,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		Object userDataA = contact.getFixtureA().getBody().getUserData();
 		Object userDataB = contact.getFixtureB().getBody().getUserData();
 		
-		if(userDataA.equals(PLAYER_USERDATA) || userDataB.equals(PLAYER_USERDATA)){
+		if((userDataA != null && userDataA.equals(PLAYER_USERDATA)) || (userDataB != null && userDataB.equals(PLAYER_USERDATA))){
 			this.mScene.setChildScene(this.mMenuScene, false, true, true);
 		}
 	}
@@ -311,10 +313,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mScene.setBackground(autoParallaxBackground);
 	}
 	
-	private void spawnMob(int laneNr) {
-		float posX = LANE_MID + (laneNr-2) * LANE_STEP_SIZE;
-		this.mEnemy = new MObject(
-				posX-ENEMY_SIZE/2,
+	private void spawnMob(float position) {
+		MObject enemy = new MObject(
+				position-ENEMY_SIZE/2,
 				-CAMERA_HEIGHT - ENEMY_SIZE,
 				ENEMY_SIZE,
 				ENEMY_SIZE,
@@ -322,8 +323,10 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				this.getVertexBufferObjectManager(), 
 				mPhysicsWorld);
 		
-		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mEnemy.getSprite(), mEnemy.getBody(), true, false));
-		this.mScene.attachChild(mEnemy.getSprite());
+		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(enemy.getSprite(), enemy.getBody(), true, false));
+		this.mScene.attachChild(enemy.getSprite());
+		
+		this.mEnemies.add(enemy);
 	}
 	
 	private void initPlayer() {
@@ -359,11 +362,12 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	 private void resetGame() {
 		 moveUp = moveDown = moveLeft = moveRight = false;
-		 
-		 mPhysicsWorld.unregisterPhysicsConnector(mPhysicsWorld.getPhysicsConnectorManager().findPhysicsConnectorByShape(mEnemy.getSprite()));
-		 mPhysicsWorld.destroyBody(mEnemy.getBody());
-		 mScene.detachChild(mEnemy.getSprite());
-		 enemyQuantity = 0;
+		 for(MObject enemy : mEnemies){
+			 mPhysicsWorld.unregisterPhysicsConnector(mPhysicsWorld.getPhysicsConnectorManager().findPhysicsConnectorByShape(enemy.getSprite()));
+			 mPhysicsWorld.destroyBody(enemy.getBody());
+			 mScene.detachChild(enemy.getSprite());
+		 }
+		 mEnemies.clear();
 		 
 		 mPlayer.getBody().setTransform((PLAYER_SPRITE_SPAWN.x + PLAYER_SIZE/2f) / PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, (PLAYER_SPRITE_SPAWN.y + PLAYER_SIZE/2f) / PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, 0);
 	}
@@ -387,8 +391,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	}
 	
 	/* Methods of random usefulness :) */
-	private int randomLane() {
-		return random.nextInt(3)+1;
+	private float randomLane() {
+		return LANE_MID + (random.nextInt(3)-1) * LANE_STEP_SIZE;
 	}
 	
 	/* Methods for moving */
