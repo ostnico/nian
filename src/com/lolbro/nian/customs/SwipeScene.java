@@ -61,7 +61,7 @@ public class SwipeScene extends Scene implements IOnSceneTouchListener {
 				
 				if(dY > dX){
 					float velocity = dY / dTime;
-					if(Math.abs(velocity) > 600 && Math.abs(dY) > 50){
+					if(Math.abs(velocity) > 600 && Math.abs(dY) > 20){
 						motionDetected = true;
 						if(event.getY() < lastLastY){
 							listener.onSwipe(SwipeListener.DIRECTION_UP);
@@ -71,7 +71,7 @@ public class SwipeScene extends Scene implements IOnSceneTouchListener {
 					}
 				} else {					
 					float velocity = dX / dTime;
-					if(Math.abs(velocity) > 600 && Math.abs(dX) > 50){
+					if(Math.abs(velocity) > 600 && Math.abs(dX) > 20){
 						motionDetected = true;
 						if(event.getX() < lastLastX){
 							listener.onSwipe(SwipeListener.DIRECTION_LEFT);

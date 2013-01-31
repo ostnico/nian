@@ -116,6 +116,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private int score;
 	private int highScore;
 	
+	private Text text;
+	
 	private int allowedEnemyQuantity = 4;
 	private float highestEnemy;
 	
@@ -304,6 +306,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		if((userDataA != null && userDataA.equals(PLAYER_USERDATA)) || (userDataB != null && userDataB.equals(PLAYER_USERDATA))){
 			this.mScene.setChildScene(this.mMenuScene, false, true, true);
 			
+			highScore = Math.max(highScore, score);
+			text.setText("" + highScore);
+			
 			/* Save High Score */
 			prefsEdit.putInt("highScore", highScore);
 			prefsEdit.commit();
@@ -373,6 +378,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private void createMenuScene() {		
 		this.mMenuScene = new MenuScene(this.mCamera);
 		
+		highScoreText();
+		
 		final SpriteMenuItem retryMenuItem = new SpriteMenuItem(MENU_RETRY, this.mMenuRetryRegion, this.getVertexBufferObjectManager());
 		retryMenuItem.setBlendFunction(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
 		this.mMenuScene.addMenuItem(retryMenuItem);
@@ -420,6 +427,15 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	/* Methods of random usefulness :) */
 	private float randomLane() {
 		return LANE_MID + (random.nextInt(3)-1) * LANE_STEP_SIZE;
+	}
+	
+	private void highScoreText() {
+		HUD hud=new HUD();
+		Font font = FontFactory.create(this.getFontManager(), this.getTextureManager(), 256, 256, Typeface.create(Typeface.DEFAULT, Typeface.BOLD), 32);
+		font.load();
+		text = new Text(10, 10, font, "" + highScore, 20, new TextOptions(HorizontalAlign.CENTER), this.getVertexBufferObjectManager());
+		hud.attachChild(text);
+		mCamera.setHUD(hud);
 	}
 	
 	/* Methods for moving */
