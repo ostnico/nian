@@ -1,11 +1,14 @@
 package com.lolbro.nian.customs;
 
+import org.andengine.entity.scene.IOnSceneTouchListener;
 import org.andengine.entity.scene.Scene;
-import org.andengine.input.touch.detector.SurfaceGestureDetector;
+import org.andengine.input.touch.TouchEvent;
 
 import android.content.Context;
+import android.os.SystemClock;
+import android.view.MotionEvent;
 
-public class SwipeScene extends Scene {
+public class SwipeScene extends Scene implements IOnSceneTouchListener {
 
 	public static final int MIN_SWIPE_DISTANCE = 50;
 	
@@ -20,45 +23,77 @@ public class SwipeScene extends Scene {
 		public void onSwipe(int direction);
 	}
 	
-	public void registerForGestureDetection(Context context, SwipeListener listener) {
+	public void registerForSwipes(Context context, SwipeListener listener) {
 		this.listener = listener;
-		SurfaceGestureDetector gestureDetector = new SurfaceGestureDetector(context, MIN_SWIPE_DISTANCE) {
-			@Override
-			protected boolean onSwipeUp() {
-				SwipeScene.this.listener.onSwipe(SwipeListener.DIRECTION_UP);
-				return false;
-			}
-			
-			@Override
-			protected boolean onSwipeDown() {
-				SwipeScene.this.listener.onSwipe(SwipeListener.DIRECTION_DOWN);
-				return false;
-			}
-			
-			@Override
-			protected boolean onSwipeLeft() {
-				SwipeScene.this.listener.onSwipe(SwipeListener.DIRECTION_LEFT);
-				return false;
-			}
-			
-			@Override
-			protected boolean onSwipeRight() {
-				SwipeScene.this.listener.onSwipe(SwipeListener.DIRECTION_RIGHT);
-				return false;
-			}
-			
-			@Override
-			protected boolean onSingleTap() {
-				return false;
-			}
-			
-			@Override
-			protected boolean onDoubleTap() {
-				return false;
-			}
-		};
+		setOnSceneTouchListener(this);
+	}
+
+	private float lastX;
+	private float lastLastX;
+	private float lastY;
+	private float lastLastY;
+	private long lastTime;
+	private long lastLastTime;
+	private int touchFrames;
+	private boolean motionDetected;
+	
+	@Override
+	public boolean onSceneTouchEvent(Scene pScene, TouchEvent pSceneTouchEvent) {
+		MotionEvent event = pSceneTouchEvent.getMotionEvent();
 		
-		setOnSceneTouchListener(gestureDetector);
+		switch(event.getAction()){
+		case MotionEvent.ACTION_DOWN:			
+			touchFrames = 1;
+			lastX = event.getX();
+			lastY = event.getY();
+			lastTime = SystemClock.uptimeMillis();
+			motionDetected = false;
+			break;
+		case MotionEvent.ACTION_MOVE:
+		case MotionEvent.ACTION_UP:
+			if(motionDetected){
+				return true;
+			}
+			if(touchFrames > 2){
+				float dTime = (SystemClock.uptimeMillis() - lastLastTime) / 1000f;
+				float dX = Math.abs(event.getX() - lastLastX);
+				float dY = Math.abs(event.getY() - lastLastY);
+				
+				if(dY > dX){
+					float velocity = dY / dTime;
+					if(Math.abs(velocity) > 600 && Math.abs(dY) > 50){
+						motionDetected = true;
+						if(event.getY() < lastLastY){
+							listener.onSwipe(SwipeListener.DIRECTION_UP);
+						} else {
+							listener.onSwipe(SwipeListener.DIRECTION_DOWN);						
+						}
+					}
+				} else {					
+					float velocity = dX / dTime;
+					if(Math.abs(velocity) > 600 && Math.abs(dX) > 50){
+						motionDetected = true;
+						if(event.getX() < lastLastX){
+							listener.onSwipe(SwipeListener.DIRECTION_LEFT);
+						} else {
+							listener.onSwipe(SwipeListener.DIRECTION_RIGHT);						
+						}
+					}
+				}
+				
+			}
+			
+			touchFrames++;
+			lastLastX = lastX;
+			lastLastY = lastY;
+			lastX = event.getX();
+			lastY = event.getY();
+			lastLastTime = lastTime;
+			lastTime = SystemClock.uptimeMillis();
+			break;
+		}
+		
+		return true;
 	}
 	
 }

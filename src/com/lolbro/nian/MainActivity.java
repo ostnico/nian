@@ -185,7 +185,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	@Override
 	public synchronized void onResumeGame() {
 		super.onResumeGame();
-		mScene.registerForGestureDetection(this, this);
+		mScene.registerForSwipes(this, this);
 	}
 	
 	@Override
