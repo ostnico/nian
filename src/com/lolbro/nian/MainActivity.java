@@ -28,6 +28,7 @@ import org.andengine.opengl.texture.TextureOptions;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlas;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasTextureRegionFactory;
 import org.andengine.opengl.texture.region.ITextureRegion;
+import org.andengine.opengl.texture.region.ITiledTextureRegion;
 import org.andengine.opengl.vbo.VertexBufferObjectManager;
 import org.andengine.ui.activity.SimpleBaseGameActivity;
 import org.andengine.util.HorizontalAlign;
@@ -63,7 +64,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private static final int MENU_RETRY = 1;
 	
-	private static final float LANE_STEP_SIZE = 140;
+	private static final float LANE_STEP_SIZE = 160;
 	public static final float LANE_MID = CAMERA_WIDTH/2;
 	public static final float LANE_LEFT = LANE_MID - LANE_STEP_SIZE;
 	public static final float LANE_RIGHT = LANE_MID + LANE_STEP_SIZE;
@@ -93,7 +94,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private PhysicsWorld mPhysicsWorld;
 	
 	private BitmapTextureAtlas mCharactersTexture;
-	private ITextureRegion mPlayerRegion;
+	private ITiledTextureRegion mPlayerRegion;
 	private ITextureRegion mObstacleRegion;
 	
 	private BitmapTextureAtlas mMenuTexture;
@@ -107,7 +108,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private Random random = new Random();
 	
-	private BitmapTextureAtlas mAutoParallaxBackgroundTexture;
+	private BitmapTextureAtlas mBackgroundTextureAtlas;
 	private ITextureRegion mParallaxLayerBack;
 	
 	private boolean moveLeft = false;
@@ -141,13 +142,13 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	protected void onCreateResources() {
 		BitmapTextureAtlasTextureRegionFactory.setAssetBasePath("gfx/");
 		
-		this.mAutoParallaxBackgroundTexture = new BitmapTextureAtlas(this.getTextureManager(), 512, 64);
-		this.mParallaxLayerBack = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mAutoParallaxBackgroundTexture, this, "floor_2.png", 0, 0);
-		this.mAutoParallaxBackgroundTexture.load();
+		this.mBackgroundTextureAtlas = new BitmapTextureAtlas(this.getTextureManager(), 512, 64);
+		this.mParallaxLayerBack = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mBackgroundTextureAtlas, this, "floor_2.png", 0, 0);
+		this.mBackgroundTextureAtlas.load();
 		
-		this.mCharactersTexture = new BitmapTextureAtlas(this.getTextureManager(), 64, 32, TextureOptions.BILINEAR);
-		this.mPlayerRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "player.png", 0, 0);
-		this.mObstacleRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "obstacle.png", 32, 0);
+		this.mCharactersTexture = new BitmapTextureAtlas(this.getTextureManager(), 512, 256, TextureOptions.BILINEAR);
+		this.mPlayerRegion = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mCharactersTexture, this, "player_1_animation.png", 0, 0, 8, 1);
+		this.mObstacleRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "obstacle.png", 0, 65);
 		this.mCharactersTexture.load();
 		
 		this.mMenuTexture = new BitmapTextureAtlas(this.getTextureManager(), 256, 64, TextureOptions.BILINEAR);
@@ -239,7 +240,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		}
 		
 		if (enemyQuantity < allowedEnemyQuantity) {
-			spawnMob();
+			spawnMob(randomLane());
 			enemyQuantity++;
 		}
 		
@@ -296,12 +297,13 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mScene.setBackground(autoParallaxBackground);
 	}
 	
-	private void spawnMob() {
+	private void spawnMob(int laneNr) {
+		float posX = LANE_MID + (laneNr-2) * LANE_STEP_SIZE;
 		this.mEnemy = new MObject(
-				randomLane()-PLAYER_SIZE/2,
-				-CAMERA_HEIGHT - PLAYER_SIZE,
-				PLAYER_SIZE,
-				PLAYER_SIZE,
+				posX-ENEMY_SIZE/2,
+				-CAMERA_HEIGHT - ENEMY_SIZE,
+				ENEMY_SIZE,
+				ENEMY_SIZE,
 				this.mObstacleRegion,
 				this.getVertexBufferObjectManager(), 
 				mPhysicsWorld);
@@ -315,8 +317,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mPlayer = new MObject(
 				PLAYER_SPRITE_SPAWN.x,
 				PLAYER_SPRITE_SPAWN.y,
-				PLAYER_SIZE,
-				PLAYER_SIZE,
+//				PLAYER_SIZE,
+//				PLAYER_SIZE,
 				this.mPlayerRegion,
 				this.getVertexBufferObjectManager(),
 				mPhysicsWorld);
@@ -360,8 +362,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	}
 	
 	/* Methods of random usefulness :) */
-	private float randomLane() {
-		return LANE_MID + (random.nextInt(3)-1) * LANE_STEP_SIZE;
+	private int randomLane() {
+		return random.nextInt(3)+1;
 	}
 	
 	/* Methods for moving */

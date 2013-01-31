@@ -1,11 +1,15 @@
 package com.lolbro.nian.models;
 
+import org.andengine.entity.sprite.AnimatedSprite;
 import org.andengine.entity.sprite.Sprite;
 import org.andengine.extension.physics.box2d.PhysicsFactory;
 import org.andengine.extension.physics.box2d.PhysicsWorld;
 import org.andengine.extension.physics.box2d.util.constants.PhysicsConstants;
 import org.andengine.opengl.texture.region.ITextureRegion;
+import org.andengine.opengl.texture.region.ITiledTextureRegion;
 import org.andengine.opengl.vbo.VertexBufferObjectManager;
+
+import android.opengl.GLES20;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -63,6 +67,66 @@ public class MObject {
 	 */
 	public MObject(float x, float y, int width, int height, ITextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape, FixtureDef fixtureDef){
 		sprite = new Sprite(x, y, width, height, textureRegion, vertexBufferObjectManager);
+		final FixtureDef playerFixtureDef = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
+		
+		switch(shape){
+		case SHAPE_BOX:
+			body = PhysicsFactory.createBoxBody(physicsWorld, sprite, BodyType.DynamicBody, playerFixtureDef);
+			break;
+		case SHAPE_CIRCLE:
+			body = PhysicsFactory.createCircleBody(physicsWorld, sprite, BodyType.DynamicBody, playerFixtureDef);
+			break;
+		}
+		body.setFixedRotation(true);
+	}
+	
+	// FOR ANIMATED SPRITES
+	/**
+	 * 
+	 * @param x
+	 * @param y
+	 * @param width
+	 * @param height
+	 * @param textureRegion
+	 * @param vertexBufferObjectManager
+	 * @param physicsWorld
+	 */
+	public MObject(float x, float y, ITiledTextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld){
+		this(x, y, textureRegion, vertexBufferObjectManager, physicsWorld, SHAPE_BOX);
+	}
+	
+	/**
+	 * 
+	 * @param x
+	 * @param y
+	 * @param width
+	 * @param height
+	 * @param textureRegion
+	 * @param vertexBufferObjectManager
+	 * @param physicsWorld
+	 * @param shape
+	 */
+	public MObject(float x, float y, ITiledTextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape){
+		this(x, y, textureRegion, vertexBufferObjectManager, physicsWorld, shape, PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f));
+	}
+	
+	/**
+	 * 
+	 * @param x
+	 * @param y
+	 * @param width
+	 * @param height
+	 * @param textureRegion
+	 * @param vertexBufferObjectManager
+	 * @param physicsWorld
+	 * @param shape
+	 * @param fixtureDef
+	 */
+	public MObject(float x, float y, ITiledTextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape, FixtureDef fixtureDef){
+		AnimatedSprite sprite = new AnimatedSprite(x, y, textureRegion, vertexBufferObjectManager);
+		sprite.animate(65);
+		sprite.setBlendFunction(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+		this.sprite = sprite;
 		final FixtureDef playerFixtureDef = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
 		
 		switch(shape){
