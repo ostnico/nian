@@ -3,7 +3,7 @@ package com.lolbro.nian;
 import java.util.ArrayList;
 import java.util.Random;
 
-import org.andengine.engine.camera.SmoothCamera;
+import org.andengine.engine.camera.Camera;
 import org.andengine.engine.camera.hud.HUD;
 import org.andengine.engine.handler.IUpdateHandler;
 import org.andengine.engine.handler.timer.ITimerCallback;
@@ -35,8 +35,10 @@ import org.andengine.opengl.vbo.VertexBufferObjectManager;
 import org.andengine.ui.activity.SimpleBaseGameActivity;
 import org.andengine.util.HorizontalAlign;
 
+import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.opengl.GLES20;
+import android.util.Log;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -57,6 +59,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	// ===========================================================
 	// Constants
 	// ===========================================================
+	
+	private SharedPreferences prefs;
+	private SharedPreferences.Editor prefsEdit;
 	
 	private static final int CAMERA_WIDTH = 480;
 	private static final int CAMERA_HEIGHT = 720;
@@ -79,6 +84,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private static final int ENEMY_SIZE = 64;
 	private static final float ENEMY_SPEED = 15f;
+	private static final float ALLOWED_HIGH = -500f / PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
 	
 	public static final int JUMP_UP = SwipeListener.DIRECTION_UP;
 	public static final int JUMP_DOWN = SwipeListener.DIRECTION_DOWN;
@@ -89,7 +95,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	// Fields
 	// ===========================================================
 	
-	private SmoothCamera mCamera;
+	private Camera mCamera;
 	
 	private SwipeScene mScene;
 	private MenuScene mMenuScene;
@@ -106,7 +112,12 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private MObject mPlayer;
 	private ArrayList<MObject> mEnemies;
 	
-	private int allowedEnemyQuantity = 3;
+	private float timeElapsed;
+	private int score;
+	private int highScore;
+	
+	private int allowedEnemyQuantity = 4;
+	private float highestEnemy;
 	
 	private Random random = new Random();
 	
@@ -119,10 +130,6 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private boolean moveDown = false;
 	
 	private float rollToPosition = 0;
-	
-	// ===========================================================
-	// Constructors
-	// ===========================================================
 
 	// ===========================================================
 	// Getter & Setter
@@ -134,7 +141,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	@Override
 	public EngineOptions onCreateEngineOptions() {
-		this.mCamera = new SmoothCamera(0, -CAMERA_HEIGHT, CAMERA_WIDTH, CAMERA_HEIGHT, 10 * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, 10 * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, 10);
+		this.mCamera = new Camera(0, -CAMERA_HEIGHT, CAMERA_WIDTH, CAMERA_HEIGHT);
 		
 		//new RatioResolutionPolicy(CAMERA_WIDTH, CAMERA_HEIGHT)
 		return new EngineOptions(true, ScreenOrientation.PORTRAIT_FIXED, new FillResolutionPolicy(), this.mCamera);
@@ -160,6 +167,11 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	@Override
 	protected Scene onCreateScene() {
+		
+		prefs = getSharedPreferences("nian_preferences", 0);
+		prefsEdit = prefs.edit();
+		
+		highScore = prefs.getInt("highScore", 0);
 		
 		createMenuScene();
 		
@@ -217,6 +229,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	@Override
 	public void onUpdate(float pSecondsElapsed) {
+		timeElapsed += pSecondsElapsed;
+		score = (int)(timeElapsed * 35);
+		
 		if (isMoving()){
 			Body playerBody = mPlayer.getBody();
 	
@@ -255,10 +270,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			}
 		}
 		
-		if (mEnemies.size() < allowedEnemyQuantity) {
-			spawnMob(randomLane());
-		}
-		
+		highestEnemy = 0;
 		for(int i=mEnemies.size()-1; i>=0; i--){
 			MObject enemy = mEnemies.get(i);
 			Body enemyBody = enemy.getBody();
@@ -268,6 +280,14 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				mPhysicsWorld.destroyBody(enemyBody);
 				mScene.detachChild(enemy.getSprite());
 				mEnemies.remove(i);
+			} else {
+				highestEnemy = Math.min(highestEnemy, enemy.getBodyPositionY(true));
+			}
+		}
+		
+		if (mEnemies.size() < allowedEnemyQuantity) {
+			if (highestEnemy >= ALLOWED_HIGH) {
+				spawnMob(randomLane());
 			}
 		}
 	}
@@ -283,6 +303,10 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		
 		if((userDataA != null && userDataA.equals(PLAYER_USERDATA)) || (userDataB != null && userDataB.equals(PLAYER_USERDATA))){
 			this.mScene.setChildScene(this.mMenuScene, false, true, true);
+			
+			/* Save High Score */
+			prefsEdit.putInt("highScore", highScore);
+			prefsEdit.commit();
 		}
 	}
 
@@ -361,6 +385,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	}
 	
 	 private void resetGame() {
+		 
+		 timeElapsed = 0;
+		 
 		 moveUp = moveDown = moveLeft = moveRight = false;
 		 for(MObject enemy : mEnemies){
 			 mPhysicsWorld.unregisterPhysicsConnector(mPhysicsWorld.getPhysicsConnectorManager().findPhysicsConnectorByShape(enemy.getSprite()));

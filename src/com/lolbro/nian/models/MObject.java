@@ -35,7 +35,7 @@ public class MObject {
 	 * @param physicsWorld
 	 */
 	public MObject(float x, float y, int width, int height, ITextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld){
-		this(x, y, width, height, textureRegion, vertexBufferObjectManager, physicsWorld, SHAPE_BOX);
+		this(x, y, width, height, textureRegion, vertexBufferObjectManager, physicsWorld, SHAPE_CIRCLE);
 	}
 	
 	/**
