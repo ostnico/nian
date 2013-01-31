@@ -14,6 +14,7 @@ import org.andengine.entity.scene.Scene;
 import org.andengine.entity.scene.menu.MenuScene;
 import org.andengine.entity.scene.menu.MenuScene.IOnMenuItemClickListener;
 import org.andengine.entity.scene.menu.item.IMenuItem;
+import org.andengine.entity.scene.menu.item.SpriteMenuItem;
 import org.andengine.entity.sprite.Sprite;
 import org.andengine.entity.text.Text;
 import org.andengine.entity.text.TextOptions;
@@ -34,7 +35,7 @@ import org.andengine.ui.activity.SimpleBaseGameActivity;
 import org.andengine.util.HorizontalAlign;
 
 import android.graphics.Typeface;
-import android.util.Log;
+import android.opengl.GLES20;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -90,6 +91,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private SmoothCamera mCamera;
 	
 	private SwipeScene mScene;
+	private MenuScene mMenuScene;
 	
 	private PhysicsWorld mPhysicsWorld;
 	
@@ -159,7 +161,11 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	@Override
 	protected Scene onCreateScene() {
 		
-		createScene();
+		createMenuScene();
+		
+		this.mScene = new SwipeScene();
+		
+		this.mScene.registerUpdateHandler(this);
 		
 		this.mPhysicsWorld = new FixedStepPhysicsWorld(STEPS_PER_SECOND, MAX_STEPS_PER_UPDATE, new Vector2(0, 0), false, 10, 10);
 		
@@ -191,8 +197,16 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	@Override
 	public boolean onMenuItemClicked(MenuScene pMenuScene, IMenuItem pMenuItem, float pMenuItemLocalX, float pMenuItemLocalY) {
-		// TODO Auto 
-		return true;
+		switch(pMenuItem.getID()) {
+		case MENU_RETRY:
+			this.mScene.reset();
+			this.mMenuScene.reset();
+			
+			resetGame();
+			return true;
+		default:
+			return false;
+		}
 	}
 	
 	// ===========================================================
@@ -252,7 +266,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				mPhysicsWorld.destroyBody(enemyBody);
 				mScene.detachChild(mEnemy.getSprite());
 				enemyQuantity--;
-			}			
+			}
 		}
 	}
 	
@@ -266,7 +280,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		Object userDataB = contact.getFixtureB().getBody().getUserData();
 		
 		if(userDataA.equals(PLAYER_USERDATA) || userDataB.equals(PLAYER_USERDATA)){
-			Log.d("nian", "FITTA");
+			this.mScene.setChildScene(this.mMenuScene, false, true, true);
 		}
 	}
 
@@ -329,18 +343,29 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mScene.attachChild(mPlayer.getSprite());
 	}
 	
-	private void createScene() {
-		this.mScene = new SwipeScene();
+	private void createMenuScene() {		
+		this.mMenuScene = new MenuScene(this.mCamera);
 		
-//		final SpriteMenuItem retryMenuItem = new SpriteMenuItem(MENU_RETRY, this.mMenuRetryRegion, this.getVertexBufferObjectManager());
-//		retryMenuItem.setBlendFunction(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
-//		this.mScene.addMenuItem(retryMenuItem);
-//		
-//		this.mScene.buildAnimations();
+		final SpriteMenuItem retryMenuItem = new SpriteMenuItem(MENU_RETRY, this.mMenuRetryRegion, this.getVertexBufferObjectManager());
+		retryMenuItem.setBlendFunction(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+		this.mMenuScene.addMenuItem(retryMenuItem);
 		
-		this.mScene.registerUpdateHandler(this);
+		this.mMenuScene.buildAnimations();
 		
-//		this.mScene.setOnMenuItemClickListener(this);
+		this.mMenuScene.setBackgroundEnabled(false);
+		
+		this.mMenuScene.setOnMenuItemClickListener(this);
+	}
+	
+	 private void resetGame() {
+		 moveUp = moveDown = moveLeft = moveRight = false;
+		 
+		 mPhysicsWorld.unregisterPhysicsConnector(mPhysicsWorld.getPhysicsConnectorManager().findPhysicsConnectorByShape(mEnemy.getSprite()));
+		 mPhysicsWorld.destroyBody(mEnemy.getBody());
+		 mScene.detachChild(mEnemy.getSprite());
+		 enemyQuantity = 0;
+		 
+		 mPlayer.getBody().setTransform((PLAYER_SPRITE_SPAWN.x + PLAYER_SIZE/2f) / PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, (PLAYER_SPRITE_SPAWN.y + PLAYER_SIZE/2f) / PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, 0);
 	}
 	
 	/* Methods for debugging */
