@@ -18,14 +18,21 @@ import com.badlogic.gdx.physics.box2d.FixtureDef;
 
 public class MObject {
 
+	public static final int TYPE_PLAYER = 1;
+	public static final int TYPE_ENEMY = 2;
+	public static final int TYPE_COUPON = 3;
+	
 	public static final int SHAPE_BOX = 1;
 	public static final int SHAPE_CIRCLE = 2;
 	
 	private Body body;
 	private Sprite sprite;
 	
+	private int type;
+	
 	/**
 	 * 
+	 * @param type
 	 * @param x
 	 * @param y
 	 * @param width
@@ -34,12 +41,13 @@ public class MObject {
 	 * @param vertexBufferObjectManager
 	 * @param physicsWorld
 	 */
-	public MObject(float x, float y, int width, int height, ITextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld){
-		this(x, y, width, height, textureRegion, vertexBufferObjectManager, physicsWorld, SHAPE_CIRCLE);
+	public MObject(int type, float x, float y, int width, int height, ITextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld){
+		this(type, x, y, width, height, textureRegion, vertexBufferObjectManager, physicsWorld, SHAPE_CIRCLE);
 	}
 	
 	/**
 	 * 
+	 * @param type
 	 * @param x
 	 * @param y
 	 * @param width
@@ -49,12 +57,13 @@ public class MObject {
 	 * @param physicsWorld
 	 * @param shape
 	 */
-	public MObject(float x, float y, int width, int height, ITextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape){
-		this(x, y, width, height, textureRegion, vertexBufferObjectManager, physicsWorld, shape, PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f));
+	public MObject(int type, float x, float y, int width, int height, ITextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape){
+		this(type, x, y, width, height, textureRegion, vertexBufferObjectManager, physicsWorld, shape, PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f, true));
 	}
 	
 	/**
 	 * 
+	 * @param type
 	 * @param x
 	 * @param y
 	 * @param width
@@ -65,16 +74,16 @@ public class MObject {
 	 * @param shape
 	 * @param fixtureDef
 	 */
-	public MObject(float x, float y, int width, int height, ITextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape, FixtureDef fixtureDef){
+	public MObject(int type, float x, float y, int width, int height, ITextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape, FixtureDef fixtureDef){
 		sprite = new Sprite(x, y, width, height, textureRegion, vertexBufferObjectManager);
-		final FixtureDef playerFixtureDef = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
+		this.type = type;
 		
 		switch(shape){
 		case SHAPE_BOX:
-			body = PhysicsFactory.createBoxBody(physicsWorld, sprite, BodyType.DynamicBody, playerFixtureDef);
+			body = PhysicsFactory.createBoxBody(physicsWorld, sprite, BodyType.DynamicBody, fixtureDef);
 			break;
 		case SHAPE_CIRCLE:
-			body = PhysicsFactory.createCircleBody(physicsWorld, sprite, BodyType.DynamicBody, playerFixtureDef);
+			body = PhysicsFactory.createCircleBody(physicsWorld, sprite, BodyType.DynamicBody, fixtureDef);
 			break;
 		}
 		body.setFixedRotation(true);
@@ -83,6 +92,7 @@ public class MObject {
 	// FOR ANIMATED SPRITES
 	/**
 	 * 
+	 * @param type
 	 * @param x
 	 * @param y
 	 * @param width
@@ -91,12 +101,13 @@ public class MObject {
 	 * @param vertexBufferObjectManager
 	 * @param physicsWorld
 	 */
-	public MObject(float x, float y, ITiledTextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld){
-		this(x, y, textureRegion, vertexBufferObjectManager, physicsWorld, SHAPE_BOX);
+	public MObject(int type, float x, float y, ITiledTextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld){
+		this(type, x, y, textureRegion, vertexBufferObjectManager, physicsWorld, SHAPE_BOX);
 	}
 	
 	/**
 	 * 
+	 * @param type
 	 * @param x
 	 * @param y
 	 * @param width
@@ -106,12 +117,13 @@ public class MObject {
 	 * @param physicsWorld
 	 * @param shape
 	 */
-	public MObject(float x, float y, ITiledTextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape){
-		this(x, y, textureRegion, vertexBufferObjectManager, physicsWorld, shape, PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f));
+	public MObject(int type, float x, float y, ITiledTextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape){
+		this(type, x, y, textureRegion, vertexBufferObjectManager, physicsWorld, shape, PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f, true));
 	}
 	
 	/**
 	 * 
+	 * @param type
 	 * @param x
 	 * @param y
 	 * @param width
@@ -122,19 +134,20 @@ public class MObject {
 	 * @param shape
 	 * @param fixtureDef
 	 */
-	public MObject(float x, float y, ITiledTextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape, FixtureDef fixtureDef){
+	public MObject(int type, float x, float y, ITiledTextureRegion textureRegion, VertexBufferObjectManager vertexBufferObjectManager, PhysicsWorld physicsWorld, int shape, FixtureDef fixtureDef){
 		AnimatedSprite sprite = new AnimatedSprite(x, y, textureRegion, vertexBufferObjectManager);
 		sprite.animate(30);
 		sprite.setBlendFunction(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
 		this.sprite = sprite;
-		final FixtureDef playerFixtureDef = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
+		
+		this.type = type;
 		
 		switch(shape){
 		case SHAPE_BOX:
-			body = PhysicsFactory.createBoxBody(physicsWorld, sprite, BodyType.DynamicBody, playerFixtureDef);
+			body = PhysicsFactory.createBoxBody(physicsWorld, sprite, BodyType.DynamicBody, fixtureDef);
 			break;
 		case SHAPE_CIRCLE:
-			body = PhysicsFactory.createCircleBody(physicsWorld, sprite, BodyType.DynamicBody, playerFixtureDef);
+			body = PhysicsFactory.createCircleBody(physicsWorld, sprite, BodyType.DynamicBody, fixtureDef);
 			break;
 		}
 		body.setFixedRotation(true);
@@ -146,6 +159,10 @@ public class MObject {
 	
 	public Sprite getSprite() {
 		return sprite;
+	}
+	
+	public int getType() {
+		return type;
 	}
 	
 	/**
