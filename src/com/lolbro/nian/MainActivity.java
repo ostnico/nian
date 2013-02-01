@@ -86,10 +86,10 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private static final float ENEMY_SPEED = 15f;
 	private static final float ALLOWED_HIGH = -500f / PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
 	
-	public static final int JUMP_UP = SwipeListener.DIRECTION_UP;
-	public static final int JUMP_DOWN = SwipeListener.DIRECTION_DOWN;
-	public static final int JUMP_LEFT = SwipeListener.DIRECTION_LEFT;
-	public static final int JUMP_RIGHT = SwipeListener.DIRECTION_RIGHT;
+	public static final int MOVE_UP = SwipeListener.DIRECTION_UP;
+	public static final int MOVE_DOWN = SwipeListener.DIRECTION_DOWN;
+	public static final int MOVE_LEFT = SwipeListener.DIRECTION_LEFT;
+	public static final int MOVE_RIGHT = SwipeListener.DIRECTION_RIGHT;
 	
 	// ===========================================================
 	// Fields
@@ -130,6 +130,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private boolean moveRight = false;
 	private boolean moveUp = false;
 	private boolean moveDown = false;
+	
+	private int moveOnQueue;
 	
 	private float rollToPosition = 0;
 
@@ -208,7 +210,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	@Override
 	public void onSwipe(int direction) {
-		jump(direction);	
+		move(direction);	
 	}
 	
 	@Override
@@ -247,6 +249,10 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				} else {
 					moveUp = false;
 					playerBody.setTransform(x, rollToPosition, 0);
+					if (moveOnQueue != 0) {
+						move(moveOnQueue);
+						moveOnQueue = 0;
+					}
 				}
 			} else if (moveDown == true) {
 				if (y + rollMovement < rollToPosition) {
@@ -254,6 +260,10 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				} else {
 					moveDown = false;
 					playerBody.setTransform(x, rollToPosition, 0);
+					if (moveOnQueue != 0) {
+						move(moveOnQueue);
+						moveOnQueue = 0;
+					}
 				}
 			} else if (moveLeft == true) {
 				if (x - rollMovement > rollToPosition) {
@@ -261,6 +271,10 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				} else {
 					moveLeft = false;
 					playerBody.setTransform(rollToPosition, y, 0);
+					if (moveOnQueue != 0) {
+						move(moveOnQueue);
+						moveOnQueue = 0;
+					}
 				}
 			} else if (moveRight == true) {
 				if (x + rollMovement < rollToPosition) {
@@ -268,7 +282,11 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				} else {
 					moveRight = false;
 					playerBody.setTransform(rollToPosition, y, 0);
-				}			
+					if (moveOnQueue != 0) {
+						move(moveOnQueue);
+						moveOnQueue = 0;
+					}
+				}
 			}
 		}
 		
@@ -288,7 +306,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		}
 		
 		if (mEnemies.size() < allowedEnemyQuantity) {
-			if (highestEnemy >= ALLOWED_HIGH) {
+			if (highestEnemy >= ALLOWED_HIGH && random.nextFloat() > 0.985) {
+				Log.d("nian", "" + score);
 				spawnMob(randomLane());
 			}
 		}
@@ -429,6 +448,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		return LANE_MID + (random.nextInt(3)-1) * LANE_STEP_SIZE;
 	}
 	
+	
+	
 	private void highScoreText() {
 		HUD hud=new HUD();
 		Font font = FontFactory.create(this.getFontManager(), this.getTextureManager(), 256, 256, Typeface.create(Typeface.DEFAULT, Typeface.BOLD), 32);
@@ -439,33 +460,53 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	}
 	
 	/* Methods for moving */
-	private void jump(int direction){
-		if(isMoving()){
-			return;
+	private void move(int direction){
+		if (isMoving()) {
+			if (moveOnQueue != 0) {
+				return;
+			} else {
+				switch(direction){
+				case 0:
+					return;
+				case MOVE_UP:
+					moveOnQueue = MOVE_UP;
+					break;
+				case MOVE_DOWN:
+					moveOnQueue = MOVE_DOWN;
+					break;
+				case MOVE_LEFT:
+					moveOnQueue = MOVE_LEFT;
+					break;
+				case MOVE_RIGHT:
+					moveOnQueue = MOVE_RIGHT;
+					break;
+				}
+				return;
+			}
 		}
 		
 		Vector2 playerPosition = mPlayer.getBodyPosition(false);
 		
 		switch(direction){
-		case JUMP_UP:
+		case MOVE_UP:
 			if ((int)playerPosition.y >= PLAYER_HOME_POSITION.y) {
 				rollToPosition = (int)playerPosition.y - LANE_STEP_SIZE;
 				rollToPosition /= PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
 				moveUp = true;
 			} break;
-		case JUMP_DOWN:
+		case MOVE_DOWN:
 			if ((int)playerPosition.y <= PLAYER_HOME_POSITION.y) {
 				rollToPosition = (int)playerPosition.y + LANE_STEP_SIZE;
 				rollToPosition /= PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
 				moveDown = true;
 			} break;
-		case JUMP_LEFT:
+		case MOVE_LEFT:
 			if ((int)playerPosition.x >= PLAYER_HOME_POSITION.x) {
 				rollToPosition = (int)playerPosition.x - LANE_STEP_SIZE;
 				rollToPosition /= PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
 				moveLeft = true;
 			} break;
-		case JUMP_RIGHT:
+		case MOVE_RIGHT:
 			if ((int)playerPosition.x <= PLAYER_HOME_POSITION.x) {
 				rollToPosition = (int)playerPosition.x + LANE_STEP_SIZE;
 				rollToPosition /= PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
