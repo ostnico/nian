@@ -12,6 +12,7 @@ import org.andengine.engine.options.EngineOptions;
 import org.andengine.engine.options.ScreenOrientation;
 import org.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
 import org.andengine.entity.scene.Scene;
+import org.andengine.entity.scene.background.SpriteBackground;
 import org.andengine.entity.scene.menu.MenuScene;
 import org.andengine.entity.scene.menu.MenuScene.IOnMenuItemClickListener;
 import org.andengine.entity.scene.menu.item.IMenuItem;
@@ -69,7 +70,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private static final int STEPS_PER_SECOND = 60;
 	private static final int MAX_STEPS_PER_UPDATE = 1;
 	
-	private static final int MENU_RETRY = 1;
+	private static final int MAINMENU_PLAY = 1;
+	private static final int MAINMENU_SHOP = 2;
+	private static final int MENU_RETRY = 3;
 	
 	private static final float LANE_STEP_SIZE = 160;
 	public static final float LANE_MID = CAMERA_WIDTH/2;
@@ -98,6 +101,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private Camera mCamera;
 	
 	private SwipeScene mScene;
+	private MenuScene mMainMenuScene;
 	private MenuScene mMenuScene;
 	
 	private PhysicsWorld mPhysicsWorld;
@@ -107,6 +111,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private ITextureRegion mObstacleRegion;
 	
 	private BitmapTextureAtlas mMenuTexture;
+	private ITextureRegion mMainMenuBackgroundRegion;
+	private ITextureRegion mMainMenuPlayRegion;
+	private ITextureRegion mMainMenuShopRegion;
 	private ITextureRegion mMenuRetryRegion;
 
 	private MObject mPlayer;
@@ -164,8 +171,11 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mObstacleRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "obstacle.png", 0, 65);
 		this.mCharactersTexture.load();
 		
-		this.mMenuTexture = new BitmapTextureAtlas(this.getTextureManager(), 256, 64, TextureOptions.BILINEAR);
-		this.mMenuRetryRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mMenuTexture, this, "menu_retry.png", 0, 0);
+		this.mMenuTexture = new BitmapTextureAtlas(this.getTextureManager(), 512, 1024, TextureOptions.BILINEAR);
+		this.mMainMenuBackgroundRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mMenuTexture, this, "mainmenu_background.png", 0, 0); //480x720
+		this.mMainMenuShopRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mMenuTexture, this, "mainmenu_shop.png", 0, 721); //174x59
+		this.mMainMenuPlayRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mMenuTexture, this, "mainmenu_play.png", 174, 721); //130x64
+		this.mMenuRetryRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mMenuTexture, this, "menu_retry.png", 0, 781); //158x40
 		this.mMenuTexture.load();
 	}
 	
@@ -177,6 +187,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		
 		highScore = prefs.getInt("highScore", 0);
 		
+		createMainMenuScene();
 		createMenuScene();
 		
 		this.mScene = new SwipeScene();
@@ -194,6 +205,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		initBackground();
 		initPlayer();
 //		showFPS();
+		
+		this.mScene.setChildScene(this.mMainMenuScene, false, true, true);
 
 		return this.mScene;
 	}
@@ -202,6 +215,15 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	public synchronized void onResumeGame() {
 		super.onResumeGame();
 		mScene.registerForSwipes(this, this);
+	}
+	
+	@Override
+	public void onBackPressed() {
+		if(this.mScene.hasChildScene()){
+			super.onBackPressed();
+		} else {
+			this.mScene.setChildScene(this.mMainMenuScene, false, true, true);
+		}
 	}
 	
 	@Override
@@ -216,6 +238,15 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	@Override
 	public boolean onMenuItemClicked(MenuScene pMenuScene, IMenuItem pMenuItem, float pMenuItemLocalX, float pMenuItemLocalY) {
 		switch(pMenuItem.getID()) {
+		case MAINMENU_PLAY:
+			this.mScene.reset();
+			this.mMainMenuScene.reset();
+			
+			resetGame();
+			return true;
+		case MAINMENU_SHOP:
+			
+			return true;
 		case MENU_RETRY:
 			this.mScene.reset();
 			this.mMenuScene.reset();
@@ -394,12 +425,30 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mScene.attachChild(mPlayer.getSprite());
 	}
 	
+	private void createMainMenuScene() {
+		this.mMainMenuScene = new MenuScene(this.mCamera);
+		
+		this.mMainMenuScene.setBackground(new SpriteBackground(new Sprite(0, 0, mMainMenuBackgroundRegion, getVertexBufferObjectManager())));
+		
+		final SpriteMenuItem playMenuItem = new SpriteMenuItem(MAINMENU_PLAY, this.mMainMenuPlayRegion, this.getVertexBufferObjectManager());
+		playMenuItem.setBlendFunction(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+		this.mMainMenuScene.addMenuItem(playMenuItem);
+		
+		final SpriteMenuItem shopMenuItem = new SpriteMenuItem(MAINMENU_SHOP, this.mMainMenuShopRegion, this.getVertexBufferObjectManager());
+		shopMenuItem.setBlendFunction(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+		this.mMainMenuScene.addMenuItem(shopMenuItem);
+		
+		this.mMainMenuScene.buildAnimations();
+		
+		this.mMainMenuScene.setOnMenuItemClickListener(this);
+	}
+	
 	private void createMenuScene() {		
 		this.mMenuScene = new MenuScene(this.mCamera);
 		
 		highScoreText();
 		
-		final SpriteMenuItem retryMenuItem = new SpriteMenuItem(MENU_RETRY, this.mMenuRetryRegion, this.getVertexBufferObjectManager());
+		SpriteMenuItem retryMenuItem = new SpriteMenuItem(MENU_RETRY, this.mMenuRetryRegion, this.getVertexBufferObjectManager());
 		retryMenuItem.setBlendFunction(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
 		this.mMenuScene.addMenuItem(retryMenuItem);
 		
