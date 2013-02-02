@@ -22,13 +22,22 @@ public class MObject {
 	public static final int TYPE_ENEMY = 2;
 	public static final int TYPE_COUPON = 3;
 	
+	public static final int BONUS_NONE = 0;
+	public static final int BONUS_TESLACOIL = 1;
+	
+	public static final float TESLA_COIL_DAMAGE = 100;
+	
 	public static final int SHAPE_BOX = 1;
 	public static final int SHAPE_CIRCLE = 2;
+	
 	
 	private Body body;
 	private Sprite sprite;
 	
 	private int type;
+	private int bonus = BONUS_NONE;
+	private float hitPoints;
+	
 	
 	/**
 	 * 
@@ -163,6 +172,22 @@ public class MObject {
 	
 	public int getType() {
 		return type;
+	}
+	
+	public void setBonus(int bonus) {
+		this.bonus = bonus;
+	}
+	
+	public void setHitPoints(float hitPoints) {
+		this.hitPoints = hitPoints;
+	}
+	
+	public int getBonus() {
+		return bonus;
+	}
+	
+	public float getHitPoints() {
+		return hitPoints;
 	}
 	
 	/**

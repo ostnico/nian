@@ -11,6 +11,7 @@ import org.andengine.engine.handler.timer.TimerHandler;
 import org.andengine.engine.options.EngineOptions;
 import org.andengine.engine.options.ScreenOrientation;
 import org.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
+import org.andengine.entity.primitive.Line;
 import org.andengine.entity.scene.Scene;
 import org.andengine.entity.scene.background.SpriteBackground;
 import org.andengine.entity.scene.menu.MenuScene;
@@ -35,6 +36,7 @@ import org.andengine.opengl.texture.region.ITiledTextureRegion;
 import org.andengine.opengl.vbo.VertexBufferObjectManager;
 import org.andengine.ui.activity.SimpleBaseGameActivity;
 import org.andengine.util.HorizontalAlign;
+import org.andengine.util.math.MathUtils;
 
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
@@ -60,6 +62,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	// Constants
 	// ===========================================================
 	
+	private static final float PIXEL_TO_METER_RATIO = PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
+	
 	private static final int CAMERA_WIDTH = 480;
 	private static final int CAMERA_HEIGHT = 720;
 	
@@ -83,7 +87,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private static final int ENEMY_SIZE_W = 44;
 	private static final int ENEMY_SIZE_H = 64;
 	private static final float ENEMY_SPEED = 15f;
-	private static final float ALLOWED_HIGH = -500f / PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
+	private static final float ALLOWED_HIGH = -500f / PIXEL_TO_METER_RATIO;
 	
 	private static final int COUPON_SIZE = 32;
 	private static final float COUPON_SPEED = 4.7f;
@@ -148,6 +152,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private int moveOnQueue;
 	
 	private float rollToPosition = 0;
+	
+	private Line teslaCoilLine;
 
 	// ===========================================================
 	// Getter & Setter
@@ -215,6 +221,11 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		initBackground();
 		initPlayer();
 //		showFPS();
+		
+		this.teslaCoilLine = new Line(0, 0, 0, 0, 5, getVertexBufferObjectManager());
+		this.teslaCoilLine.setColor(1, 0.1f, 0.1f);
+		this.teslaCoilLine.setZIndex(Integer.MAX_VALUE);
+		this.mScene.attachChild(teslaCoilLine);
 		
 		this.mScene.setChildScene(this.mMainMenuScene, false, true, true);
 
@@ -333,11 +344,15 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		
 		for(int i=mobjectsToRemove.size()-1; i>=0; i--){
 			MObject coupon = mobjectsToRemove.get(i);
-			mPhysicsWorld.unregisterPhysicsConnector(mPhysicsWorld.getPhysicsConnectorManager().findPhysicsConnectorByShape(coupon.getSprite()));
-			mPhysicsWorld.destroyBody(coupon.getBody());
-			mScene.detachChild(coupon.getSprite());
+			removeMobject(coupon);
 			mobjectsToRemove.remove(coupon);
 			mCoupons.remove(coupon);
+		}
+		
+		Vector2 playerPosition = null;
+		boolean enemiesInTeslacoilRange = false;
+		if(mPlayer.getBonus() == MObject.BONUS_TESLACOIL){
+			playerPosition = mPlayer.getBodyPosition(true);
 		}
 		
 		highestEnemy = 0;
@@ -345,18 +360,37 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			MObject enemy = mEnemies.get(i);
 			Body enemyBody = enemy.getBody();
 			enemyBody.setTransform(enemy.getBodyPositionX(true), enemy.getBodyPositionY(true) + ENEMY_SPEED*pSecondsElapsed, 0);
-			if (enemy.getBodyPositionY(false) > ENEMY_SIZE_H) {
-				mPhysicsWorld.unregisterPhysicsConnector(mPhysicsWorld.getPhysicsConnectorManager().findPhysicsConnectorByShape(enemy.getSprite()));
-				mPhysicsWorld.destroyBody(enemyBody);
-				mScene.detachChild(enemy.getSprite());
+			Vector2 enemyPosition = enemy.getBodyPosition(true);
+			if (enemyPosition.y * PIXEL_TO_METER_RATIO > ENEMY_SIZE_H) {
+				removeMobject(enemy);
 				mEnemies.remove(i);
 			} else {
 				highestEnemy = Math.min(highestEnemy, enemy.getBodyPositionY(true));
+				if(mPlayer.getBonus() == MObject.BONUS_TESLACOIL && enemiesInTeslacoilRange == false){
+					float distance = MathUtils.distance(playerPosition.x, playerPosition.y, enemyPosition.x, enemyPosition.y);
+					if(distance < 8){
+						float damage = MObject.TESLA_COIL_DAMAGE * pSecondsElapsed;
+						float enemyHP = enemy.getHitPoints() - damage;
+						enemy.setHitPoints(enemyHP);
+						if(enemyHP <= 0){
+							removeMobject(enemy);
+							mEnemies.remove(i);
+						}
+						teslaCoilLine.setPosition(playerPosition.x * PIXEL_TO_METER_RATIO, playerPosition.y * PIXEL_TO_METER_RATIO, enemyPosition.x * PIXEL_TO_METER_RATIO, enemyPosition.y * PIXEL_TO_METER_RATIO);
+						//TODO: Very ineffective to sort children in every update
+						mScene.sortChildren();
+						enemiesInTeslacoilRange = true;
+					}
+				}
 			}
 		}
 		
+		if(enemiesInTeslacoilRange == false){
+			teslaCoilLine.setPosition(0, 0, 0, 0);
+		}
+		
 		if (mEnemies.size() < allowedEnemyQuantity) {
-			if (highestEnemy >= ALLOWED_HIGH && random.nextFloat() > 0.985) {
+			if (highestEnemy >= ALLOWED_HIGH && random.nextFloat() > 0.985f) {
 				spawnMob(randomLane());
 			}
 		}
@@ -440,8 +474,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				this.getVertexBufferObjectManager(), 
 				mPhysicsWorld);
 		
-//		enemy.getBody().setUserData(ENEMY_USERDATA);
 		enemy.getBody().setUserData(enemy);
+		enemy.setHitPoints(20);
 		
 		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(enemy.getSprite(), enemy.getBody(), true, false));
 		this.mScene.attachChild(enemy.getSprite());
@@ -460,7 +494,6 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				this.getVertexBufferObjectManager(),
 				mPhysicsWorld);
 		
-//		coupon.getBody().setUserData(COUPON_USERDATA);
 		coupon.getBody().setUserData(coupon);
 		
 		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(coupon.getSprite(), coupon.getBody(), true, false));
@@ -482,6 +515,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				mPhysicsWorld);
 
 		this.mPlayer.getBody().setUserData(this.mPlayer);
+		this.mPlayer.setBonus(MObject.BONUS_TESLACOIL);
 		
 		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mPlayer.getSprite(), mPlayer.getBody(), true, false));
 		this.mScene.attachChild(mPlayer.getSprite());
@@ -521,26 +555,30 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mMenuScene.setOnMenuItemClickListener(this);
 	}
 	
+	private void removeMobject(MObject mobject) {
+		 mPhysicsWorld.unregisterPhysicsConnector(mPhysicsWorld.getPhysicsConnectorManager().findPhysicsConnectorByShape(mobject.getSprite()));
+		 mPhysicsWorld.destroyBody(mobject.getBody());
+		 mScene.detachChild(mobject.getSprite());
+	}
+	
 	private void removeMobjects(ArrayList<MObject> mobjects) {
 		for(MObject mobject : mobjects){
-			 mPhysicsWorld.unregisterPhysicsConnector(mPhysicsWorld.getPhysicsConnectorManager().findPhysicsConnectorByShape(mobject.getSprite()));
-			 mPhysicsWorld.destroyBody(mobject.getBody());
-			 mScene.detachChild(mobject.getSprite());
+			removeMobject(mobject);
 		 }
 		 mobjects.clear();
 	}
 	
-	 private void resetGame() {
+	private void resetGame() {
 		 
-		 timeElapsed = 0;
+		timeElapsed = 0;
 		 
-		 moveUp = moveDown = moveLeft = moveRight = false;
-
-		 removeMobjects(mEnemies);
-		 removeMobjects(mCoupons);
-		 mobjectsToRemove.clear();
-		 
-		 mPlayer.getBody().setTransform((PLAYER_SPRITE_SPAWN.x + PLAYER_SIZE/2f) / PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, (PLAYER_SPRITE_SPAWN.y + PLAYER_SIZE/2f) / PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, 0);
+		moveUp = moveDown = moveLeft = moveRight = false;
+		
+		removeMobjects(mEnemies);
+		removeMobjects(mCoupons);
+		mobjectsToRemove.clear();
+		
+		mPlayer.getBody().setTransform((PLAYER_SPRITE_SPAWN.x + PLAYER_SIZE/2f) / PIXEL_TO_METER_RATIO, (PLAYER_SPRITE_SPAWN.y + PLAYER_SIZE/2f) / PIXEL_TO_METER_RATIO, 0);
 	}
 	
 	/* Methods for debugging */
@@ -609,25 +647,25 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		case MOVE_UP:
 			if ((int)playerPosition.y >= PLAYER_HOME_POSITION.y) {
 				rollToPosition = (int)playerPosition.y - LANE_STEP_SIZE;
-				rollToPosition /= PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
+				rollToPosition /= PIXEL_TO_METER_RATIO;
 				moveUp = true;
 			} break;
 		case MOVE_DOWN:
 			if ((int)playerPosition.y <= PLAYER_HOME_POSITION.y) {
 				rollToPosition = (int)playerPosition.y + LANE_STEP_SIZE;
-				rollToPosition /= PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
+				rollToPosition /= PIXEL_TO_METER_RATIO;
 				moveDown = true;
 			} break;
 		case MOVE_LEFT:
 			if ((int)playerPosition.x >= PLAYER_HOME_POSITION.x) {
 				rollToPosition = (int)playerPosition.x - LANE_STEP_SIZE;
-				rollToPosition /= PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
+				rollToPosition /= PIXEL_TO_METER_RATIO;
 				moveLeft = true;
 			} break;
 		case MOVE_RIGHT:
 			if ((int)playerPosition.x <= PLAYER_HOME_POSITION.x) {
 				rollToPosition = (int)playerPosition.x + LANE_STEP_SIZE;
-				rollToPosition /= PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
+				rollToPosition /= PIXEL_TO_METER_RATIO;
 				moveRight = true;
 			} break;
 		}
