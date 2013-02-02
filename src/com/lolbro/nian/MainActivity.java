@@ -18,6 +18,7 @@ import org.andengine.entity.scene.menu.MenuScene;
 import org.andengine.entity.scene.menu.MenuScene.IOnMenuItemClickListener;
 import org.andengine.entity.scene.menu.item.IMenuItem;
 import org.andengine.entity.scene.menu.item.SpriteMenuItem;
+import org.andengine.entity.sprite.ButtonSprite;
 import org.andengine.entity.sprite.Sprite;
 import org.andengine.entity.text.Text;
 import org.andengine.entity.text.TextOptions;
@@ -127,6 +128,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private ITextureRegion mMainMenuPlayRegion;
 	private ITextureRegion mMainMenuShopRegion;
 	private ITextureRegion mMenuRetryRegion;
+	private ITextureRegion mPowerUpButtonRegion;
 
 	private MObject mPlayer;
 	private ArrayList<MObject> mEnemies;
@@ -139,6 +141,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private Text scoreText;
 	private Text highScoreText;
+	private ButtonSprite powerUpButton;
 	
 	private int allowedEnemyQuantity = 4;
 	private float highestEnemy;
@@ -197,8 +200,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mMenuTexture = new BitmapTextureAtlas(this.getTextureManager(), 512, 1024, TextureOptions.BILINEAR);
 		this.mMainMenuBackgroundRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mMenuTexture, this, "mainmenu_background.png", 0, 0); //480x720
 		this.mMainMenuShopRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mMenuTexture, this, "mainmenu_shop.png", 0, 721); //174x59
-		this.mMainMenuPlayRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mMenuTexture, this, "mainmenu_play.png", 174, 721); //130x64
-		this.mMenuRetryRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mMenuTexture, this, "menu_retry.png", 0, 781); //158x40
+		this.mMainMenuPlayRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mMenuTexture, this, "mainmenu_play.png", 175, 721); //130x64
+		this.mPowerUpButtonRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mMenuTexture, this, "powerupbutton.png", 307, 721); //128x64
+		this.mMenuRetryRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mMenuTexture, this, "menu_retry.png", 0, 787); //158x40
 		this.mMenuTexture.load();
 	}
 	
@@ -209,6 +213,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		prefsEdit = prefs.edit();
 		
 		highScore = prefs.getFloat("highScore", 0);
+		coupons = prefs.getInt("coupons", 0);
 		
 		/* HUD and score handler */
 		mCamera.setHUD(hud);
@@ -217,6 +222,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		
 		scoreText = new Text(CAMERA_WIDTH - 150, 10, scoreFont, "" + (int)score, 20, new TextOptions(HorizontalAlign.CENTER), this.getVertexBufferObjectManager());
 		highScoreText = new Text(10, 10, scoreFont, "" + (int)highScore, 20, new TextOptions(HorizontalAlign.CENTER), this.getVertexBufferObjectManager());
+		powerUpButton = new ButtonSprite(10, CAMERA_HEIGHT-74, this.mPowerUpButtonRegion, getVertexBufferObjectManager());
 		
 		createMainMenuScene();
 		createMenuScene();
@@ -261,7 +267,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			super.onBackPressed();
 		} else {
 			this.mScene.setChildScene(this.mMainMenuScene, false, true, true);
-			deAttachScore();
+			detachScore();
+			detachPowerUpButton();
 		}
 	}
 	
@@ -282,6 +289,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			this.mMainMenuScene.reset();
 			
 			attachScore();
+			attachPowerUpButton();
 			
 			resetGame();
 			return true;
@@ -461,6 +469,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			
 			/* Save High Score */
 			prefsEdit.putFloat("highScore", highScore);
+			prefsEdit.putInt("coupons", coupons);
 			prefsEdit.commit();
 		}
 	}
@@ -544,7 +553,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				mPhysicsWorld);
 
 		this.mPlayer.getBody().setUserData(this.mPlayer);
-		this.mPlayer.setBonus(MObject.BONUS_TESLACOIL);
+//		this.mPlayer.setBonus(MObject.BONUS_TESLACOIL);
 		
 		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(mPlayer.getSprite(), mPlayer.getBody(), true, false));
 		this.mScene.attachChild(mPlayer.getSprite());
@@ -553,7 +562,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private void createMainMenuScene() {
 		this.mMainMenuScene = new MenuScene(this.mCamera);
 		
-		deAttachScore();
+		detachScore();
+		detachPowerUpButton();
 		
 		this.mMainMenuScene.setBackground(new SpriteBackground(new Sprite(0, 0, mMainMenuBackgroundRegion, getVertexBufferObjectManager())));
 		
@@ -652,12 +662,24 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		hud.attachChild(scoreText);
 	}
 	
-	private void deAttachScore() {
+	private void detachScore() {
 		hud.detachChild(scoreText);
 	}
 	
 	private void displayHighScore() {
 		hud.attachChild(highScoreText);
+	}
+	
+	private void detachHighScore () {
+		hud.detachChild(highScoreText);
+	}
+	
+	private void attachPowerUpButton() {
+		hud.attachChild(powerUpButton);
+	}
+	
+	private void detachPowerUpButton() {
+		hud.detachChild(powerUpButton);
 	}
 	
 	/* Methods for moving */
