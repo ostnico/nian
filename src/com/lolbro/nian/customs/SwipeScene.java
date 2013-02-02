@@ -5,14 +5,15 @@ import org.andengine.entity.scene.Scene;
 import org.andengine.input.touch.TouchEvent;
 
 import android.content.Context;
-import android.os.SystemClock;
+import android.util.Log;
 import android.view.MotionEvent;
 
-public class SwipeScene extends Scene implements IOnSceneTouchListener {
+import com.lolbro.nian.R;
 
-	public static final int MIN_SWIPE_DISTANCE = 10;
-	public static final int SWIPE_SENS = 200;
+public class SwipeScene extends Scene implements IOnSceneTouchListener {
 	
+	
+	private int mMinSwipeDistance;
 	private SwipeListener listener;
 	
 	public interface SwipeListener{
@@ -24,18 +25,18 @@ public class SwipeScene extends Scene implements IOnSceneTouchListener {
 		public void onSwipe(int direction);
 	}
 	
+	public SwipeScene(Context context){
+		mMinSwipeDistance = (int) context.getResources().getDimension(R.dimen.min_swipe_distance);
+		Log.d("nian", "min distance " + mMinSwipeDistance);
+	}
+	
 	public void registerForSwipes(Context context, SwipeListener listener) {
 		this.listener = listener;
 		setOnSceneTouchListener(this);
 	}
 
-	private float lastX;
-	private float lastLastX;
-	private float lastY;
-	private float lastLastY;
-	private long lastTime;
-	private long lastLastTime;
-	private int touchFrames;
+	private float touchDownX;
+	private float touchDownY;
 	private boolean motionDetected;
 	
 	@Override
@@ -43,11 +44,9 @@ public class SwipeScene extends Scene implements IOnSceneTouchListener {
 		MotionEvent event = pSceneTouchEvent.getMotionEvent();
 		
 		switch(event.getAction()){
-		case MotionEvent.ACTION_DOWN:			
-			touchFrames = 1;
-			lastX = event.getX();
-			lastY = event.getY();
-			lastTime = SystemClock.uptimeMillis();
+		case MotionEvent.ACTION_DOWN:
+			touchDownX = event.getX();
+			touchDownY = event.getY();
 			motionDetected = false;
 			break;
 		case MotionEvent.ACTION_MOVE:
@@ -55,42 +54,28 @@ public class SwipeScene extends Scene implements IOnSceneTouchListener {
 			if(motionDetected){
 				return true;
 			}
-			if(touchFrames > 2){
-				float dTime = (SystemClock.uptimeMillis() - lastLastTime) / 1000f;
-				float dX = Math.abs(event.getX() - lastLastX);
-				float dY = Math.abs(event.getY() - lastLastY);
-				
-				if(dY > dX){
-					float velocity = dY / dTime;
-					if(Math.abs(velocity) > SWIPE_SENS && Math.abs(dY) > MIN_SWIPE_DISTANCE){
-						motionDetected = true;
-						if(event.getY() < lastLastY){
-							listener.onSwipe(SwipeListener.DIRECTION_UP);
-						} else {
-							listener.onSwipe(SwipeListener.DIRECTION_DOWN);						
-						}
-					}
-				} else {					
-					float velocity = dX / dTime;
-					if(Math.abs(velocity) > SWIPE_SENS && Math.abs(dX) > MIN_SWIPE_DISTANCE){
-						motionDetected = true;
-						if(event.getX() < lastLastX){
-							listener.onSwipe(SwipeListener.DIRECTION_LEFT);
-						} else {
-							listener.onSwipe(SwipeListener.DIRECTION_RIGHT);						
-						}
+			float dX = Math.abs(event.getX() - touchDownX);
+			float dY = Math.abs(event.getY() - touchDownY);
+			
+			if(dX > dY){
+				if(Math.abs(dX) > mMinSwipeDistance){
+					motionDetected = true;
+					if(event.getX() < touchDownX){
+						listener.onSwipe(SwipeListener.DIRECTION_LEFT);
+					} else {
+						listener.onSwipe(SwipeListener.DIRECTION_RIGHT);						
 					}
 				}
-				
+			} else {
+				if(Math.abs(dY) > mMinSwipeDistance){
+					motionDetected = true;
+					if(event.getY() < touchDownY){
+						listener.onSwipe(SwipeListener.DIRECTION_UP);
+					} else {
+						listener.onSwipe(SwipeListener.DIRECTION_DOWN);						
+					}
+				}				
 			}
-			
-			touchFrames++;
-			lastLastX = lastX;
-			lastLastY = lastY;
-			lastX = event.getX();
-			lastY = event.getY();
-			lastLastTime = lastTime;
-			lastTime = SystemClock.uptimeMillis();
 			break;
 		}
 		

@@ -204,7 +204,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		createMainMenuScene();
 		createMenuScene();
 		
-		this.mScene = new SwipeScene();
+		this.mScene = new SwipeScene(this);
 		
 		this.mScene.registerUpdateHandler(this);
 		
