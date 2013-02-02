@@ -215,7 +215,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		Font scoreFont = FontFactory.create(this.getFontManager(), this.getTextureManager(), 256, 256, Typeface.create(Typeface.DEFAULT, Typeface.BOLD), 32);
 		scoreFont.load();
 		
-		scoreText = new Text(CAMERA_WIDTH - 100, 10, scoreFont, "" + (int)score, 20, new TextOptions(HorizontalAlign.CENTER), this.getVertexBufferObjectManager());
+		scoreText = new Text(CAMERA_WIDTH - 150, 10, scoreFont, "" + (int)score, 20, new TextOptions(HorizontalAlign.CENTER), this.getVertexBufferObjectManager());
 		highScoreText = new Text(10, 10, scoreFont, "" + (int)highScore, 20, new TextOptions(HorizontalAlign.CENTER), this.getVertexBufferObjectManager());
 		
 		createMainMenuScene();
@@ -261,6 +261,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			super.onBackPressed();
 		} else {
 			this.mScene.setChildScene(this.mMainMenuScene, false, true, true);
+			deAttachScore();
 		}
 	}
 	
@@ -280,7 +281,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			this.mScene.reset();
 			this.mMainMenuScene.reset();
 			
-			displayScore();
+			attachScore();
 			
 			resetGame();
 			return true;
@@ -552,7 +553,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private void createMainMenuScene() {
 		this.mMainMenuScene = new MenuScene(this.mCamera);
 		
-		unDisplayScore();
+		deAttachScore();
 		
 		this.mMainMenuScene.setBackground(new SpriteBackground(new Sprite(0, 0, mMainMenuBackgroundRegion, getVertexBufferObjectManager())));
 		
@@ -647,11 +648,11 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		return 0;
 	}
 	
-	private void displayScore() {
+	private void attachScore() {
 		hud.attachChild(scoreText);
 	}
 	
-	private void unDisplayScore() {
+	private void deAttachScore() {
 		hud.detachChild(scoreText);
 	}
 	
