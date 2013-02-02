@@ -70,6 +70,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private static final int STEPS_PER_SECOND = 60;
 	private static final int MAX_STEPS_PER_UPDATE = 1;
 	
+	private static final float SCORE_TIME_MULTIPLIER = 133.7f;
+	
 	private static final int MAINMENU_PLAY = 1;
 	private static final int MAINMENU_SHOP = 2;
 	private static final int MENU_RETRY = 3;
@@ -91,6 +93,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private static final int COUPON_SIZE = 32;
 	private static final float COUPON_SPEED = 4.7f;
+	private static final float DISTANCE_BETWEEN_COUPONS = 10.0f;
 	
 	public static final int MOVE_UP = SwipeListener.DIRECTION_UP;
 	public static final int MOVE_DOWN = SwipeListener.DIRECTION_DOWN;
@@ -105,6 +108,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private SharedPreferences.Editor prefsEdit;
 	
 	private Camera mCamera;
+	
+	private HUD hud = new HUD();
 	
 	private SwipeScene mScene;
 	private MenuScene mMainMenuScene;
@@ -127,15 +132,19 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private ArrayList<MObject> mEnemies;
 	private ArrayList<MObject> mCoupons;
 	
+	private int activeRow;
 	private float timeElapsed;
-	private int score;
-	private int highScore;
-	private int coupons;
+	private float score;
+	private float highScore;
 	
-	private Text text;
+	private Text scoreText;
+	private Text highScoreText;
 	
 	private int allowedEnemyQuantity = 4;
 	private float highestEnemy;
+	private float highestCoupon;
+	private float couponLane;
+	private int coupons;
 	
 	private ArrayList<MObject> mobjectsToRemove;
 	
@@ -199,7 +208,15 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		prefs = getSharedPreferences("nian_preferences", 0);
 		prefsEdit = prefs.edit();
 		
-		highScore = prefs.getInt("highScore", 0);
+		highScore = prefs.getFloat("highScore", 0);
+		
+		/* HUD and score handler */
+		mCamera.setHUD(hud);
+		Font scoreFont = FontFactory.create(this.getFontManager(), this.getTextureManager(), 256, 256, Typeface.create(Typeface.DEFAULT, Typeface.BOLD), 32);
+		scoreFont.load();
+		
+		scoreText = new Text(CAMERA_WIDTH - 100, 10, scoreFont, "" + (int)score, 20, new TextOptions(HorizontalAlign.CENTER), this.getVertexBufferObjectManager());
+		highScoreText = new Text(10, 10, scoreFont, "" + (int)highScore, 20, new TextOptions(HorizontalAlign.CENTER), this.getVertexBufferObjectManager());
 		
 		createMainMenuScene();
 		createMenuScene();
@@ -263,6 +280,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			this.mScene.reset();
 			this.mMainMenuScene.reset();
 			
+			displayScore();
+			
 			resetGame();
 			return true;
 		case MAINMENU_SHOP:
@@ -286,7 +305,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	@Override
 	public void onUpdate(float pSecondsElapsed) {
 		timeElapsed += pSecondsElapsed;
-		score = (int)(timeElapsed * 35);
+		score += pSecondsElapsed * SCORE_TIME_MULTIPLIER * activeRowPoints(activeRow);
+		scoreText.setText("" + (int)score);
 		
 		if (isMoving()){
 			Body playerBody = mPlayer.getBody();
@@ -300,6 +320,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 					playerBody.setTransform(x, y - rollMovement, 0);
 				} else {
 					moveUp = false;
+					activeRow++;
 					playerBody.setTransform(x, rollToPosition, 0);
 					if (moveOnQueue != 0) {
 						move(moveOnQueue);
@@ -311,6 +332,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 					playerBody.setTransform(x, y + rollMovement, 0);
 				} else {
 					moveDown = false;
+					activeRow--;
 					playerBody.setTransform(x, rollToPosition, 0);
 					if (moveOnQueue != 0) {
 						move(moveOnQueue);
@@ -395,6 +417,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			}
 		}
 		
+		highestCoupon = 0;
 		for(int i=mCoupons.size()-1; i>=0; i--){
 			MObject coupon = mCoupons.get(i);
 			Body couponBody = coupon.getBody();
@@ -404,11 +427,16 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				mPhysicsWorld.destroyBody(couponBody);
 				mScene.detachChild(coupon.getSprite());
 				mCoupons.remove(i);
+			} else {
+				highestCoupon = Math.min(highestCoupon, coupon.getBodyPositionY(true));
 			}
 		}
 		
-		if (random.nextFloat() > 0.95) {
-			spawnCoupon(randomLane());
+		if (highestCoupon >= ALLOWED_HIGH && random.nextFloat() > 0.995f) {
+			couponLane = randomLane();
+			for (int i = 0; i < 5 + random.nextInt(5); i++) {
+				spawnCoupon(couponLane, (COUPON_SIZE + DISTANCE_BETWEEN_COUPONS)*i);
+			}
 		}
 	}
 	
@@ -428,10 +456,10 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			this.mScene.setChildScene(this.mMenuScene, false, true, true);
 			
 			highScore = Math.max(highScore, score);
-			text.setText("" + highScore);
+			highScoreText.setText("" + (int)highScore);
 			
 			/* Save High Score */
-			prefsEdit.putInt("highScore", highScore);
+			prefsEdit.putFloat("highScore", highScore);
 			prefsEdit.commit();
 		}
 	}
@@ -483,11 +511,11 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mEnemies.add(enemy);
 	}
 	
-	private void spawnCoupon(float position) {
+	private void spawnCoupon(float positionX, float positionY) {
 		MObject coupon = new MObject(
 				MObject.TYPE_COUPON,
-				position-COUPON_SIZE/2,
-				-CAMERA_HEIGHT - COUPON_SIZE,
+				positionX-COUPON_SIZE/2,
+				-CAMERA_HEIGHT - COUPON_SIZE - positionY,
 				COUPON_SIZE,
 				COUPON_SIZE,
 				this.mCouponRegion,
@@ -524,6 +552,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private void createMainMenuScene() {
 		this.mMainMenuScene = new MenuScene(this.mCamera);
 		
+		unDisplayScore();
+		
 		this.mMainMenuScene.setBackground(new SpriteBackground(new Sprite(0, 0, mMainMenuBackgroundRegion, getVertexBufferObjectManager())));
 		
 		final SpriteMenuItem playMenuItem = new SpriteMenuItem(MAINMENU_PLAY, this.mMainMenuPlayRegion, this.getVertexBufferObjectManager());
@@ -542,7 +572,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private void createMenuScene() {		
 		this.mMenuScene = new MenuScene(this.mCamera);
 		
-		highScoreText();
+		displayHighScore();
 		
 		SpriteMenuItem retryMenuItem = new SpriteMenuItem(MENU_RETRY, this.mMenuRetryRegion, this.getVertexBufferObjectManager());
 		retryMenuItem.setBlendFunction(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
@@ -569,9 +599,10 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	}
 	
 	private void resetGame() {
-		 
+
 		timeElapsed = 0;
-		 
+		score = 0;
+		
 		moveUp = moveDown = moveLeft = moveRight = false;
 		
 		removeMobjects(mEnemies);
@@ -579,7 +610,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		mobjectsToRemove.clear();
 		
 		mPlayer.getBody().setTransform((PLAYER_SPRITE_SPAWN.x + PLAYER_SIZE/2f) / PIXEL_TO_METER_RATIO, (PLAYER_SPRITE_SPAWN.y + PLAYER_SIZE/2f) / PIXEL_TO_METER_RATIO, 0);
-	}
+		activeRow = 2;
+	 }
 	
 	/* Methods for debugging */
 	private void showFPS() {
@@ -604,15 +636,27 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		return LANE_MID + (random.nextInt(3)-1) * LANE_STEP_SIZE;
 	}
 	
+	private float activeRowPoints(int activeRow) {
+		if (activeRow == 1) {
+			return 1.0f;
+		} else if (activeRow == 2) {
+			return 1.5f;
+		} else if (activeRow == 3) {
+			return 2.0f;
+		}
+		return 0;
+	}
 	
+	private void displayScore() {
+		hud.attachChild(scoreText);
+	}
 	
-	private void highScoreText() {
-		HUD hud=new HUD();
-		Font font = FontFactory.create(this.getFontManager(), this.getTextureManager(), 256, 256, Typeface.create(Typeface.DEFAULT, Typeface.BOLD), 32);
-		font.load();
-		text = new Text(10, 10, font, "" + highScore, 20, new TextOptions(HorizontalAlign.CENTER), this.getVertexBufferObjectManager());
-		hud.attachChild(text);
-		mCamera.setHUD(hud);
+	private void unDisplayScore() {
+		hud.detachChild(scoreText);
+	}
+	
+	private void displayHighScore() {
+		hud.attachChild(highScoreText);
 	}
 	
 	/* Methods for moving */
