@@ -87,8 +87,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	public static final Vector2 PLAYER_HOME_POSITION = new Vector2(LANE_MID, -CAMERA_HEIGHT/2 + PLAYER_SIZE*2);
 	public static final Vector2 PLAYER_SPRITE_SPAWN = new Vector2(PLAYER_HOME_POSITION.x - PLAYER_SIZE/2, PLAYER_HOME_POSITION.y -PLAYER_SIZE/2);
 	
-	private static final int ENEMY_SIZE_W = 44;
-	private static final int ENEMY_SIZE_H = 64;
+	private static final int ENEMY_SIZE_W = 66;
+	private static final int ENEMY_SIZE_H = 96;
 	private static final float ENEMY_SPEED = 15f;
 	private static final float ALLOWED_HIGH = -500f / PIXEL_TO_METER_RATIO;
 	
@@ -192,9 +192,9 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mBackgroundTextureAtlas.load();
 		
 		this.mCharactersTexture = new BitmapTextureAtlas(this.getTextureManager(), 512, 256, TextureOptions.BILINEAR);
-		this.mPlayerRegion = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mCharactersTexture, this, "player_1_animation.png", 0, 0, 8, 1);
-		this.mObstacleRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "obstacle_1.png", 0, 65);
-		this.mCouponRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "coupon_1.png", 44, 65);
+		this.mPlayerRegion = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mCharactersTexture, this, "player_1_animation.png", 0, 0, 8, 1); //512x64
+		this.mObstacleRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "obstacle_1.png", 0, 65); //66x96
+		this.mCouponRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "coupon_1.png", 67, 65); //32x32
 		this.mCharactersTexture.load();
 		
 		this.mMenuTexture = new BitmapTextureAtlas(this.getTextureManager(), 512, 1024, TextureOptions.BILINEAR);
