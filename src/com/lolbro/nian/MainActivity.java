@@ -139,6 +139,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private float score;
 	private float highScore;
 	
+	private boolean alive = true;
 	private Text scoreText;
 	private Text highScoreText;
 	private ButtonSprite powerUpButton;
@@ -313,138 +314,140 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	@Override
 	public void onUpdate(float pSecondsElapsed) {
-		timeElapsed += pSecondsElapsed;
-		score += pSecondsElapsed * SCORE_TIME_MULTIPLIER * activeRowPoints(activeRow);
-		scoreText.setText("" + (int)score);
-		
-		if (isMoving()){
-			Body playerBody = mPlayer.getBody();
-	
-			float x = mPlayer.getBodyPositionX(true);
-			float y = mPlayer.getBodyPositionY(true);
-			float rollMovement = PLAYER_ROLL_SPEED * pSecondsElapsed;
+		if (alive){
+			timeElapsed += pSecondsElapsed;
+			score += pSecondsElapsed * SCORE_TIME_MULTIPLIER * activeRowPoints(activeRow);
+			scoreText.setText("" + (int)score);
 			
-			if (moveUp == true) {
-				if (y - rollMovement > rollToPosition) {
-					playerBody.setTransform(x, y - rollMovement, 0);
-				} else {
-					moveUp = false;
-					activeRow++;
-					playerBody.setTransform(x, rollToPosition, 0);
-					if (moveOnQueue != 0) {
-						move(moveOnQueue);
-						moveOnQueue = 0;
-					}
-				}
-			} else if (moveDown == true) {
-				if (y + rollMovement < rollToPosition) {
-					playerBody.setTransform(x, y + rollMovement, 0);
-				} else {
-					moveDown = false;
-					activeRow--;
-					playerBody.setTransform(x, rollToPosition, 0);
-					if (moveOnQueue != 0) {
-						move(moveOnQueue);
-						moveOnQueue = 0;
-					}
-				}
-			} else if (moveLeft == true) {
-				if (x - rollMovement > rollToPosition) {
-					playerBody.setTransform(x - rollMovement, y, 0);
-				} else {
-					moveLeft = false;
-					playerBody.setTransform(rollToPosition, y, 0);
-					if (moveOnQueue != 0) {
-						move(moveOnQueue);
-						moveOnQueue = 0;
-					}
-				}
-			} else if (moveRight == true) {
-				if (x + rollMovement < rollToPosition) {
-					playerBody.setTransform(x + rollMovement, y, 0);
-				} else {
-					moveRight = false;
-					playerBody.setTransform(rollToPosition, y, 0);
-					if (moveOnQueue != 0) {
-						move(moveOnQueue);
-						moveOnQueue = 0;
-					}
-				}
-			}
-		}
-		
-		for(int i=mobjectsToRemove.size()-1; i>=0; i--){
-			MObject coupon = mobjectsToRemove.get(i);
-			removeMobject(coupon);
-			mobjectsToRemove.remove(coupon);
-			mCoupons.remove(coupon);
-		}
-		
-		Vector2 playerPosition = null;
-		boolean enemiesInTeslacoilRange = false;
-		if(mPlayer.getBonus() == MObject.BONUS_TESLACOIL){
-			playerPosition = mPlayer.getBodyPosition(true);
-		}
-		
-		highestEnemy = 0;
-		for(int i=mEnemies.size()-1; i>=0; i--){
-			MObject enemy = mEnemies.get(i);
-			Body enemyBody = enemy.getBody();
-			enemyBody.setTransform(enemy.getBodyPositionX(true), enemy.getBodyPositionY(true) + ENEMY_SPEED*pSecondsElapsed, 0);
-			Vector2 enemyPosition = enemy.getBodyPosition(true);
-			if (enemyPosition.y * PIXEL_TO_METER_RATIO > ENEMY_SIZE_H) {
-				removeMobject(enemy);
-				mEnemies.remove(i);
-			} else {
-				highestEnemy = Math.min(highestEnemy, enemy.getBodyPositionY(true));
-				if(mPlayer.getBonus() == MObject.BONUS_TESLACOIL && enemiesInTeslacoilRange == false){
-					float distance = MathUtils.distance(playerPosition.x, playerPosition.y, enemyPosition.x, enemyPosition.y);
-					if(distance < 8){
-						float damage = MObject.TESLA_COIL_DAMAGE * pSecondsElapsed;
-						float enemyHP = enemy.getHitPoints() - damage;
-						enemy.setHitPoints(enemyHP);
-						if(enemyHP <= 0){
-							removeMobject(enemy);
-							mEnemies.remove(i);
+			if (isMoving()){
+				Body playerBody = mPlayer.getBody();
+				
+				float x = mPlayer.getBodyPositionX(true);
+				float y = mPlayer.getBodyPositionY(true);
+				float rollMovement = PLAYER_ROLL_SPEED * pSecondsElapsed;
+				
+				if (moveUp == true) {
+					if (y - rollMovement > rollToPosition) {
+						playerBody.setTransform(x, y - rollMovement, 0);
+					} else {
+						moveUp = false;
+						activeRow++;
+						playerBody.setTransform(x, rollToPosition, 0);
+						if (moveOnQueue != 0) {
+							move(moveOnQueue);
+							moveOnQueue = 0;
 						}
-						teslaCoilLine.setPosition(playerPosition.x * PIXEL_TO_METER_RATIO, playerPosition.y * PIXEL_TO_METER_RATIO, enemyPosition.x * PIXEL_TO_METER_RATIO, enemyPosition.y * PIXEL_TO_METER_RATIO);
-						//TODO: Very ineffective to sort children in every update
-						mScene.sortChildren();
-						enemiesInTeslacoilRange = true;
+					}
+				} else if (moveDown == true) {
+					if (y + rollMovement < rollToPosition) {
+						playerBody.setTransform(x, y + rollMovement, 0);
+					} else {
+						moveDown = false;
+						activeRow--;
+						playerBody.setTransform(x, rollToPosition, 0);
+						if (moveOnQueue != 0) {
+							move(moveOnQueue);
+							moveOnQueue = 0;
+						}
+					}
+				} else if (moveLeft == true) {
+					if (x - rollMovement > rollToPosition) {
+						playerBody.setTransform(x - rollMovement, y, 0);
+					} else {
+						moveLeft = false;
+						playerBody.setTransform(rollToPosition, y, 0);
+						if (moveOnQueue != 0) {
+							move(moveOnQueue);
+							moveOnQueue = 0;
+						}
+					}
+				} else if (moveRight == true) {
+					if (x + rollMovement < rollToPosition) {
+						playerBody.setTransform(x + rollMovement, y, 0);
+					} else {
+						moveRight = false;
+						playerBody.setTransform(rollToPosition, y, 0);
+						if (moveOnQueue != 0) {
+							move(moveOnQueue);
+							moveOnQueue = 0;
+						}
 					}
 				}
 			}
-		}
-		
-		if(enemiesInTeslacoilRange == false){
-			teslaCoilLine.setPosition(0, 0, 0, 0);
-		}
-		
-		if (mEnemies.size() < allowedEnemyQuantity) {
-			if (highestEnemy >= ALLOWED_HIGH && random.nextFloat() > 0.985f) {
-				spawnMob(randomLane());
+			
+			for(int i=mobjectsToRemove.size()-1; i>=0; i--){
+				MObject coupon = mobjectsToRemove.get(i);
+				removeMobject(coupon);
+				mobjectsToRemove.remove(coupon);
+				mCoupons.remove(coupon);
 			}
-		}
-		
-		highestCoupon = 0;
-		for(int i=mCoupons.size()-1; i>=0; i--){
-			MObject coupon = mCoupons.get(i);
-			Body couponBody = coupon.getBody();
-			couponBody.setTransform(coupon.getBodyPositionX(true), coupon.getBodyPositionY(true) + COUPON_SPEED*pSecondsElapsed, 0);
-			if (coupon.getBodyPositionY(false) > COUPON_SIZE) {
-				mPhysicsWorld.unregisterPhysicsConnector(mPhysicsWorld.getPhysicsConnectorManager().findPhysicsConnectorByShape(coupon.getSprite()));
-				mPhysicsWorld.destroyBody(couponBody);
-				mScene.detachChild(coupon.getSprite());
-				mCoupons.remove(i);
-			} else {
-				highestCoupon = Math.min(highestCoupon, coupon.getBodyPositionY(true));
+			
+			Vector2 playerPosition = null;
+			boolean enemiesInTeslacoilRange = false;
+			if(mPlayer.getBonus() == MObject.BONUS_TESLACOIL){
+				playerPosition = mPlayer.getBodyPosition(true);
 			}
-		}
-		
-		if (highestCoupon >= ALLOWED_HIGH && random.nextFloat() > 0.995f) {
-			couponLane = randomLane();
-			for (int i = 0; i < 5 + random.nextInt(5); i++) {
-				spawnCoupon(couponLane, (COUPON_SIZE + DISTANCE_BETWEEN_COUPONS)*i);
+			
+			highestEnemy = 0;
+			for(int i=mEnemies.size()-1; i>=0; i--){
+				MObject enemy = mEnemies.get(i);
+				Body enemyBody = enemy.getBody();
+				enemyBody.setTransform(enemy.getBodyPositionX(true), enemy.getBodyPositionY(true) + ENEMY_SPEED*pSecondsElapsed, 0);
+				Vector2 enemyPosition = enemy.getBodyPosition(true);
+				if (enemyPosition.y * PIXEL_TO_METER_RATIO > ENEMY_SIZE_H) {
+					removeMobject(enemy);
+					mEnemies.remove(i);
+				} else {
+					highestEnemy = Math.min(highestEnemy, enemy.getBodyPositionY(true));
+					if(mPlayer.getBonus() == MObject.BONUS_TESLACOIL && enemiesInTeslacoilRange == false){
+						float distance = MathUtils.distance(playerPosition.x, playerPosition.y, enemyPosition.x, enemyPosition.y);
+						if(distance < 8){
+							float damage = MObject.TESLA_COIL_DAMAGE * pSecondsElapsed;
+							float enemyHP = enemy.getHitPoints() - damage;
+							enemy.setHitPoints(enemyHP);
+							if(enemyHP <= 0){
+								removeMobject(enemy);
+								mEnemies.remove(i);
+							}
+							teslaCoilLine.setPosition(playerPosition.x * PIXEL_TO_METER_RATIO, playerPosition.y * PIXEL_TO_METER_RATIO, enemyPosition.x * PIXEL_TO_METER_RATIO, enemyPosition.y * PIXEL_TO_METER_RATIO);
+							//TODO: Very ineffective to sort children in every update
+							mScene.sortChildren();
+							enemiesInTeslacoilRange = true;
+						}
+					}
+				}
+			}
+			
+			if(enemiesInTeslacoilRange == false){
+				teslaCoilLine.setPosition(0, 0, 0, 0);
+			}
+			
+			if (mEnemies.size() < allowedEnemyQuantity) {
+				if (highestEnemy >= ALLOWED_HIGH && random.nextFloat() > 0.985f) {
+					spawnMob(randomLane());
+				}
+			}
+			
+			highestCoupon = 0;
+			for(int i=mCoupons.size()-1; i>=0; i--){
+				MObject coupon = mCoupons.get(i);
+				Body couponBody = coupon.getBody();
+				couponBody.setTransform(coupon.getBodyPositionX(true), coupon.getBodyPositionY(true) + COUPON_SPEED*pSecondsElapsed, 0);
+				if (coupon.getBodyPositionY(false) > COUPON_SIZE) {
+					mPhysicsWorld.unregisterPhysicsConnector(mPhysicsWorld.getPhysicsConnectorManager().findPhysicsConnectorByShape(coupon.getSprite()));
+					mPhysicsWorld.destroyBody(couponBody);
+					mScene.detachChild(coupon.getSprite());
+					mCoupons.remove(i);
+				} else {
+					highestCoupon = Math.min(highestCoupon, coupon.getBodyPositionY(true));
+				}
+			}
+			
+			if (highestCoupon >= ALLOWED_HIGH && random.nextFloat() > 0.995f) {
+				couponLane = randomLane();
+				for (int i = 0; i < 5 + random.nextInt(5); i++) {
+					spawnCoupon(couponLane, (COUPON_SIZE + DISTANCE_BETWEEN_COUPONS)*i);
+				}
 			}
 		}
 	}
@@ -463,6 +466,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			coupons++;
 		} else if((mobjectA.getType() == MObject.TYPE_ENEMY && mobjectB.getType() == MObject.TYPE_PLAYER || mobjectA.getType() == MObject.TYPE_PLAYER && mobjectB.getType() == MObject.TYPE_ENEMY)){
 			this.mScene.setChildScene(this.mMenuScene, false, true, true);
+			
+			alive = false;
 			
 			highScore = Math.max(highScore, score);
 			highScoreText.setText("" + (int)highScore);
@@ -611,6 +616,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private void resetGame() {
 
+		alive = true;
 		timeElapsed = 0;
 		score = 0;
 		
