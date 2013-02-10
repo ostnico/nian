@@ -89,7 +89,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private static final int OBSTACLE_02_SIZE_W = 100;
 	private static final int OBSTACLE_02_SIZE_H = 100;
-	private static final float OBSTACLE_SPEED = 4.7f;
+	private static final float OBSTACLE_SPEED = 4.68f;
 	
 	private static final int ENEMY_SIZE_W = 66;
 	private static final int ENEMY_SIZE_H = 96;
@@ -97,7 +97,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private static final float ALLOWED_HIGH = -500f / PIXEL_TO_METER_RATIO;
 	
 	private static final int COUPON_SIZE = 32;
-	private static final float COUPON_SPEED = 4.7f;
+	private static final float COUPON_SPEED = 4.68f;
 	private static final float DISTANCE_BETWEEN_COUPONS = 10.0f;
 	
 	public static final int MOVE_UP = SwipeListener.DIRECTION_UP;
