@@ -12,7 +12,6 @@ import org.andengine.engine.options.EngineOptions;
 import org.andengine.engine.options.ScreenOrientation;
 import org.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
 import org.andengine.entity.primitive.Line;
-import org.andengine.entity.scene.ITouchArea;
 import org.andengine.entity.scene.Scene;
 import org.andengine.entity.scene.background.SpriteBackground;
 import org.andengine.entity.scene.menu.MenuScene;
@@ -45,7 +44,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.opengl.GLES20;
-import android.util.Log;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -243,7 +241,6 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			@Override
 			public void onClick(ButtonSprite pButtonSprite, float pTouchAreaLocalX, float pTouchAreaLocalY) {
 				int teslas = prefs.getInt("tesla_coils", 0);
-				Log.d("nian", "teslas " + teslas);
 				if(teslas > 0){
 					mPlayer.setBonus(MObject.BONUS_TESLACOIL);
 					prefsEdit.putInt("tesla_coils", teslas-1);
