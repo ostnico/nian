@@ -99,6 +99,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private static final int ENEMY_SIZE_H = 96;
 	private static final float ENEMY_SPEED = 15f;
 	private static final float ALLOWED_HIGH = -500f / PIXEL_TO_METER_RATIO;
+	private static final int SPAWN_DELAY_Y = 100;
 	
 	private static final int COUPON_SIZE = 32;
 	private static final float COUPON_SPEED = 4.68f;
@@ -158,6 +159,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private float highestEnemy;
 	private float highestObstacle;
 	private float highestCoupon;
+	private float obstacleLane;
 	private float couponLane;
 	private int coupons;
 	
@@ -346,6 +348,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			score += pSecondsElapsed * SCORE_TIME_MULTIPLIER * activeRowPoints(activeRow);
 			scoreText.setText("" + (int)score);
 			
+			/* MOVING OF CHARACTER */
 			if (isMoving()){
 				Body playerBody = mPlayer.getBody();
 				
@@ -402,6 +405,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				}
 			}
 			
+			/* REMOVE OBJECTS */
 			for(int i=mobjectsToRemove.size()-1; i>=0; i--){
 				MObject coupon = mobjectsToRemove.get(i);
 				removeMobject(coupon);
@@ -409,6 +413,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				mCoupons.remove(coupon);
 			}
 			
+			/* MOVE MOBJECTS */
 			Vector2 playerPosition = null;
 			boolean enemiesInTeslacoilRange = false;
 			if(mPlayer.getBonus() == MObject.BONUS_TESLACOIL){
@@ -445,6 +450,10 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				}
 			}
 			
+			if(enemiesInTeslacoilRange == false){
+				teslaCoilLine.setPosition(0, 0, 0, 0);
+			}
+			
 			highestObstacle = 0;
 			for(int i=mObstacles.size()-1; i>=0; i--){
 				MObject obstacle = mObstacles.get(i);
@@ -457,18 +466,6 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				} else {
 					highestObstacle = Math.min(highestObstacle, obstacle.getBodyPositionY(true));
 				}
-			}
-			
-			if(enemiesInTeslacoilRange == false){
-				teslaCoilLine.setPosition(0, 0, 0, 0);
-			}
-			
-			if(highestEnemy >= ALLOWED_HIGH && random.nextFloat() > 0.985f) {
-				spawnMob(randomLane());
-			}
-			
-			if(highestObstacle >= ALLOWED_HIGH && random.nextFloat() > 0.99f) {
-				spawnObstacle02(randomLane());
 			}
 			
 			highestCoupon = 0;
@@ -486,10 +483,33 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				}
 			}
 			
-			if (highestCoupon >= ALLOWED_HIGH && random.nextFloat() > 0.995f) {
+			/* SPAWN MOBJECTS */
+			if(highestEnemy >= ALLOWED_HIGH && random.nextFloat() > 0.985f) {
+				spawnMob(randomLane());
+			}
+			
+			if(highestObstacle >= ALLOWED_HIGH && random.nextFloat() > 0.99f) {
+				obstacleLane = randomLane();
+				spawnObstacle02(obstacleLane);
+			}
+			
+			if (highestCoupon >= ALLOWED_HIGH && random.nextFloat() > 0.985f) {
 				couponLane = randomLane();
-				for (int i = 0; i < 5 + random.nextInt(5); i++) {
-					spawnCoupon(couponLane, (COUPON_SIZE + DISTANCE_BETWEEN_COUPONS)*i);
+				if(mObstacles.size() > 0) {
+					for(int i=mObstacles.size()-1; i>=0; i--) {
+						MObject obstacle = mObstacles.get(i);
+						if(obstacle.getBodyPositionY(false) <= -CAMERA_HEIGHT + OBSTACLE_02_SIZE_H/2 && obstacle.getBodyPositionX(false) == couponLane) {
+						} else {
+							for (int j = 0; j < 5 + random.nextInt(5); j++) {
+								spawnCoupon(couponLane, (COUPON_SIZE + DISTANCE_BETWEEN_COUPONS)*j);
+								i = -1;
+							}
+						}
+					}
+				} else {
+					for (int i = 0; i < 5 + random.nextInt(5); i++) {
+						spawnCoupon(couponLane, (COUPON_SIZE + DISTANCE_BETWEEN_COUPONS)*i);
+					}
 				}
 			}
 		}
@@ -595,7 +615,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		MObject coupon = new MObject(
 				MObject.TYPE_COUPON,
 				positionX-COUPON_SIZE/2,
-				-CAMERA_HEIGHT - COUPON_SIZE - positionY,
+				-CAMERA_HEIGHT - COUPON_SIZE - SPAWN_DELAY_Y - positionY,
 				COUPON_SIZE,
 				COUPON_SIZE,
 				this.mCouponRegion,
