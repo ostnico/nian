@@ -39,6 +39,7 @@ import org.andengine.ui.activity.SimpleBaseGameActivity;
 import org.andengine.util.HorizontalAlign;
 import org.andengine.util.math.MathUtils;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.opengl.GLES20;
@@ -304,6 +305,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 			resetGame();
 			return true;
 		case MAINMENU_SHOP:
+			Intent intent = new Intent(this, ShopActivity.class);
+			startActivity(intent);
 			
 			return true;
 		case MENU_RETRY:

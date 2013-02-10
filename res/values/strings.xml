@@ -2,5 +2,8 @@
 <resources>
 
     <string name="app_name">nian</string>
+    
+    <string name="shop_credits">You have %d coupons</string>
+    <string name="shop_not_enough_credits">Not enough coupons</string>
 
 </resources>
