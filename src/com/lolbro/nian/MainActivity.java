@@ -283,6 +283,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	@Override
 	public synchronized void onResumeGame() {
 		super.onResumeGame();
+		coupons = prefs.getInt("coupons", 0);
 		mScene.registerForSwipes(this, this);
 	}
 	
