@@ -21,6 +21,7 @@ public class MObject {
 	public static final int TYPE_PLAYER = 1;
 	public static final int TYPE_ENEMY = 2;
 	public static final int TYPE_COUPON = 3;
+	public static final int TYPE_STATIC_OBSTACLE = 4;
 	
 	public static final int BONUS_NONE = 0;
 	public static final int BONUS_TESLACOIL = 1;

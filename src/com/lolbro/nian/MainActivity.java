@@ -87,6 +87,10 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	public static final Vector2 PLAYER_HOME_POSITION = new Vector2(LANE_MID, -CAMERA_HEIGHT/2 + PLAYER_SIZE*2);
 	public static final Vector2 PLAYER_SPRITE_SPAWN = new Vector2(PLAYER_HOME_POSITION.x - PLAYER_SIZE/2, PLAYER_HOME_POSITION.y -PLAYER_SIZE/2);
 	
+	private static final int OBSTACLE_02_SIZE_W = 100;
+	private static final int OBSTACLE_02_SIZE_H = 100;
+	private static final float OBSTACLE_SPEED = 4.7f;
+	
 	private static final int ENEMY_SIZE_W = 66;
 	private static final int ENEMY_SIZE_H = 96;
 	private static final float ENEMY_SPEED = 15f;
@@ -120,7 +124,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private BitmapTextureAtlas mCharactersTexture;
 	private ITiledTextureRegion mPlayerRegion;
-	private ITextureRegion mObstacleRegion;
+	private ITextureRegion mEnemy01Region;
+	private ITextureRegion mObstacle02Region;
 	private ITextureRegion mCouponRegion;
 	
 	private BitmapTextureAtlas mMenuTexture;
@@ -132,6 +137,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 
 	private MObject mPlayer;
 	private ArrayList<MObject> mEnemies;
+	private ArrayList<MObject> mObstacles;
 	private ArrayList<MObject> mCoupons;
 	
 	private int activeRow;
@@ -146,6 +152,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	
 	private int allowedEnemyQuantity = 4;
 	private float highestEnemy;
+	private float highestObstacle;
 	private float highestCoupon;
 	private float couponLane;
 	private int coupons;
@@ -194,7 +201,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		
 		this.mCharactersTexture = new BitmapTextureAtlas(this.getTextureManager(), 512, 256, TextureOptions.BILINEAR);
 		this.mPlayerRegion = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mCharactersTexture, this, "player_1_animation.png", 0, 0, 8, 1); //512x64
-		this.mObstacleRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "obstacle_1.png", 0, 65); //66x96
+		this.mEnemy01Region = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "enemy_1.png", 0, 65); //66x96
+		this.mObstacle02Region = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "obstacle_02.png", 100, 65); //100x100
 		this.mCouponRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mCharactersTexture, this, "coupon_1.png", 67, 65); //32x32
 		this.mCharactersTexture.load();
 		
@@ -239,6 +247,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mScene.registerUpdateHandler(this.mPhysicsWorld);
 		
 		this.mEnemies = new ArrayList<MObject>();
+		this.mObstacles = new ArrayList<MObject>();
 		this.mCoupons = new ArrayList<MObject>();
 		this.mobjectsToRemove = new ArrayList<MObject>();
 		
@@ -418,14 +427,30 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				}
 			}
 			
+			highestObstacle = 0;
+			for(int i=mObstacles.size()-1; i>=0; i--){
+				MObject obstacle = mObstacles.get(i);
+				Body obstacleBody = obstacle.getBody();
+				obstacleBody.setTransform(obstacle.getBodyPositionX(true), obstacle.getBodyPositionY(true) + OBSTACLE_SPEED*pSecondsElapsed, 0);
+				Vector2 obstaclePosition = obstacle.getBodyPosition(true);
+				if (obstaclePosition.y * PIXEL_TO_METER_RATIO > OBSTACLE_02_SIZE_H) {
+					removeMobject(obstacle);
+					mObstacles.remove(i);
+				} else {
+					highestObstacle = Math.min(highestObstacle, obstacle.getBodyPositionY(true));
+				}
+			}
+			
 			if(enemiesInTeslacoilRange == false){
 				teslaCoilLine.setPosition(0, 0, 0, 0);
 			}
 			
-			if (mEnemies.size() < allowedEnemyQuantity) {
-				if (highestEnemy >= ALLOWED_HIGH && random.nextFloat() > 0.985f) {
-					spawnMob(randomLane());
-				}
+			if(highestEnemy >= ALLOWED_HIGH && random.nextFloat() > 0.985f) {
+				spawnMob(randomLane());
+			}
+			
+			if(highestObstacle >= ALLOWED_HIGH && random.nextFloat() > 0.99f) {
+				spawnObstacle02(randomLane());
 			}
 			
 			highestCoupon = 0;
@@ -464,7 +489,10 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		if((mobjectA.getType() == MObject.TYPE_COUPON && mobjectB.getType() == MObject.TYPE_PLAYER || mobjectA.getType() == MObject.TYPE_PLAYER && mobjectB.getType() == MObject.TYPE_COUPON)){
 			mobjectsToRemove.add(mobjectA.getType() == MObject.TYPE_COUPON ? mobjectA : mobjectB);
 			coupons++;
-		} else if((mobjectA.getType() == MObject.TYPE_ENEMY && mobjectB.getType() == MObject.TYPE_PLAYER || mobjectA.getType() == MObject.TYPE_PLAYER && mobjectB.getType() == MObject.TYPE_ENEMY)){
+		} else if(mobjectA.getType() == MObject.TYPE_ENEMY && mobjectB.getType() == MObject.TYPE_PLAYER || 
+				mobjectA.getType() == MObject.TYPE_PLAYER && mobjectB.getType() == MObject.TYPE_ENEMY || 
+				mobjectA.getType() == MObject.TYPE_STATIC_OBSTACLE && mobjectB.getType() == MObject.TYPE_PLAYER || 
+				mobjectA.getType() == MObject.TYPE_PLAYER && mobjectB.getType() == MObject.TYPE_STATIC_OBSTACLE) {
 			this.mScene.setChildScene(this.mMenuScene, false, true, true);
 			
 			alive = false;
@@ -513,7 +541,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				-CAMERA_HEIGHT - ENEMY_SIZE_H,
 				ENEMY_SIZE_W,
 				ENEMY_SIZE_H,
-				this.mObstacleRegion,
+				this.mEnemy01Region,
 				this.getVertexBufferObjectManager(), 
 				mPhysicsWorld);
 		
@@ -524,6 +552,25 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		this.mScene.attachChild(enemy.getSprite());
 		
 		this.mEnemies.add(enemy);
+	}
+	
+	private void spawnObstacle02(float position) {
+		MObject obstacle02 = new MObject(
+				MObject.TYPE_ENEMY, //Should be TYPE_STATIC_OBSTACLE which is declared in MObject but using TYPE_ENEMY temporary
+				position-OBSTACLE_02_SIZE_W/2,
+				-CAMERA_HEIGHT - OBSTACLE_02_SIZE_H,
+				OBSTACLE_02_SIZE_W,
+				OBSTACLE_02_SIZE_H,
+				this.mObstacle02Region,
+				this.getVertexBufferObjectManager(),
+				mPhysicsWorld);
+		
+		obstacle02.getBody().setUserData(obstacle02);
+		
+		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(obstacle02.getSprite(), obstacle02.getBody(), true, false));
+		this.mScene.attachChild(obstacle02.getSprite());
+		
+		this.mObstacles.add(obstacle02);
 	}
 	
 	private void spawnCoupon(float positionX, float positionY) {
@@ -623,6 +670,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 		moveUp = moveDown = moveLeft = moveRight = false;
 		
 		removeMobjects(mEnemies);
+		removeMobjects(mObstacles);
 		removeMobjects(mCoupons);
 		mobjectsToRemove.clear();
 		
