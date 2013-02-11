@@ -97,6 +97,7 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private static final int ENEMY_SIZE_H = 96;
 	private static final float ENEMY_SPEED = 15f;
 	private static final float ALLOWED_HIGH = -500f / PIXEL_TO_METER_RATIO;
+	private static final float ALLOWED_HIGH_COUPON = -700f / PIXEL_TO_METER_RATIO;
 	private static final int SPAWN_DELAY_Y = 100;
 	
 	private static final int COUPON_SIZE = 32;
@@ -160,6 +161,8 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 	private float obstacleLane;
 	private float couponLane;
 	private int coupons;
+	private boolean checkIfSpawnCoupon = true;
+	private boolean checkIfSpawnObstacle = true;
 	
 	private ArrayList<MObject> mobjectsToRemove;
 	
@@ -486,25 +489,37 @@ public class MainActivity extends SimpleBaseGameActivity implements SwipeListene
 				spawnMob(randomLane());
 			}
 			
-			if(highestObstacle >= ALLOWED_HIGH && random.nextFloat() > 0.99f) {
+			if(highestObstacle >= ALLOWED_HIGH && random.nextFloat() > 0.98f) {
 				obstacleLane = randomLane();
-				spawnObstacle02(obstacleLane);
+				checkIfSpawnObstacle = true;
+				
+				if(mCoupons.size() > 0) {
+					for(int i=mCoupons.size()-1; i>=0; i--) {
+						MObject coupon = mCoupons.get(i);
+						if(coupon.getBodyPositionY(false) <= -CAMERA_HEIGHT + COUPON_SIZE/2 && coupon.getBodyPositionX(false) == obstacleLane) {
+							checkIfSpawnObstacle = false;
+						}
+					}
+				}
+				
+				if (checkIfSpawnObstacle) {
+					spawnObstacle02(obstacleLane);
+				}
 			}
-			
-			if (highestCoupon >= ALLOWED_HIGH && random.nextFloat() > 0.985f) {
+
+			if (highestCoupon >= ALLOWED_HIGH_COUPON && random.nextFloat() > 0.975f) {
 				couponLane = randomLane();
+				checkIfSpawnCoupon = true;
 				if(mObstacles.size() > 0) {
 					for(int i=mObstacles.size()-1; i>=0; i--) {
 						MObject obstacle = mObstacles.get(i);
 						if(obstacle.getBodyPositionY(false) <= -CAMERA_HEIGHT + OBSTACLE_02_SIZE_H/2 && obstacle.getBodyPositionX(false) == couponLane) {
-						} else {
-							for (int j = 0; j < 5 + random.nextInt(5); j++) {
-								spawnCoupon(couponLane, (COUPON_SIZE + DISTANCE_BETWEEN_COUPONS)*j);
-								i = -1;
-							}
+							checkIfSpawnCoupon = false;
 						}
 					}
-				} else {
+				}
+				
+				if (checkIfSpawnCoupon) {
 					for (int i = 0; i < 5 + random.nextInt(5); i++) {
 						spawnCoupon(couponLane, (COUPON_SIZE + DISTANCE_BETWEEN_COUPONS)*i);
 					}
